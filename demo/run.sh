@@ -41,11 +41,16 @@ node flag-contract.mjs example.contract.json
 printf '\nRegression · Beta segment now also matches plan=free\n'
 apply_stage regression
 status=0
-node flag-contract.mjs example.contract.json || status=$?
+regression_output=$(node flag-contract.mjs example.contract.json 2>&1) || status=$?
+printf '%s\n' "$regression_output"
 if [[ $status != 1 ]]; then
   printf 'Expected an audience mismatch (exit 1), got exit %s\n' "$status" >&2
   exit 1
 fi
+grep -Fxq 'FAIL Free users get standard search' <<< "$regression_output"
+grep -Fxq '  search_v2.enabled: expected false, got true' <<< "$regression_output"
+grep -Fxq '  search_v2.value: expected "standard", got "hybrid"' <<< "$regression_output"
+grep -Fxq '2/3 cases passed' <<< "$regression_output"
 
 printf '\nRestored · Beta segment matches plan=beta again\n'
 apply_stage restored

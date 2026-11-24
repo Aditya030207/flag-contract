@@ -27,4 +27,16 @@ Run the same file in CI against each environment by setting the API URL and envi
 
 ## Hackathon demo
 
-Show the passing suite, widen the segment in the Flagsmith dashboard, show the free-user failure, then restore the segment and rerun. Explain that this catches audience-level changes even when the environment default stays the same.
+The [recorded live run](https://github.com/Aditya030207/flag-contract/actions/runs/45328399501) used self-hosted Flagsmith 2.291.0. The baseline passed all three cases. Widening the beta segment produced two mismatches for free users, while anonymous and beta cases still passed. Restoring the segment brought the suite back to three passes.
+
+To replay the same sequence locally, use Node.js 22+, Docker Compose v2, Bash, and curl:
+
+```sh
+bash demo/run.sh
+```
+
+The script starts a disposable instance with its own database and an available loopback port. It uses the official Compose setup and removes that demo instance and its data when the run ends.
+
+## Flagsmith integration
+
+`flag-contract.mjs` uses the same SDK endpoints and transient trait fields as the [Flagsmith JavaScript client](https://github.com/Flagsmith/flagsmith-js-client/blob/main/flagsmith-core.ts). Flagsmith evaluates the targeting rules and returns `enabled` and `feature_state_value`. The CLI compares those outputs to the contract and never needs a management API key. The demo fixture uses the pinned release's [segment models](https://github.com/Flagsmith/flagsmith/blob/v2.291.0/api/segments/models.py) and [feature models](https://github.com/Flagsmith/flagsmith/blob/v2.291.0/api/features/models.py) to seed the disposable instance.
