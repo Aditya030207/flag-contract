@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {
+      "name": "Anonymous visitors get standard search",
+      "expect": { "search_v2": { "enabled": false, "value": "standard" } }
+    },
+    {
+      "name": "Free users get standard search",
+      "identity": "contract-demo-free",
+      "traits": { "plan": "free" },
+      "expect": { "search_v2": { "enabled": false, "value": "standard" } }
+    },
+    {
+      "name": "Beta users get hybrid search",
+      "identity": "contract-demo-beta",
+      "traits": { "plan": "beta" },
+      "expect": { "search_v2": { "enabled": true, "value": "hybrid" } }
+    }
+  ]
+}
