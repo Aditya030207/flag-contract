@@ -33,6 +33,21 @@ node flag-contract.mjs example.contract.json --check
 
 This also catches duplicate case names. It needs no SDK key or network connection and exits `0` when valid or `2` for invalid input.
 
+Use repeatable `--case` options to rerun selected cases by exact name. By default, the runner evaluates the whole contract in file order.
+
+```sh
+node flag-contract.mjs example.contract.json --case 'Free users get standard search'
+```
+
+To use the CLI without cloning this repo, install the package from the GitHub release. It has no npm runtime dependencies.
+
+```sh
+npm install --global https://github.com/Aditya030207/flag-contract/releases/download/v0.4.0/aditya030207-flag-contract-0.4.0.tgz
+flag-contract example.contract.json --check
+```
+
+Use your own contract file, or [download the example](example.contract.json) and its [schema](contract.schema.json). Node.js 22+ is required.
+
 Run the same file in CI against each environment by setting the API URL and environment key in the corresponding job. Exit status `0` means all cases passed, `1` means a mismatch, and `2` means a configuration or API error.
 
 Use `--json` to capture a report while keeping the same exit statuses:
@@ -50,7 +65,7 @@ Add a contract to your repository and place these steps in your workflow after c
 ```yaml
 - name: Check rollout
   id: flag-contract
-  uses: Aditya030207/flag-contract@v0.3.0
+  uses: Aditya030207/flag-contract@v0.4.0
   with:
     contract: flag-contract.json
     api-url: ${{ vars.FLAGSMITH_API_URL }}

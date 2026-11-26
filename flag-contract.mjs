@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { isDeepStrictEqual, parseArgs } from 'node:util';
 
@@ -79,16 +80,26 @@ async function main(args, json) {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
-    options: { check: { type: 'boolean' }, json: { type: 'boolean' } },
+    options: {
+      check: { type: 'boolean' },
+      json: { type: 'boolean' },
+      case: { type: 'string', multiple: true },
+    },
   });
   if (positionals.length !== 1) {
-    throw new Error('Usage: node flag-contract.mjs CONTRACT.json [--check] [--json]');
+    throw new Error('Usage: flag-contract CONTRACT.json [--case NAME] [--check] [--json]');
   }
   const [filename] = positionals;
   const suite = JSON.parse(await readFile(filename, 'utf8'));
   validate(suite);
+  const requested = new Set(values.case);
+  const scenarios = requested.size ? suite.cases.filter(({ name }) => requested.has(name)) : suite.cases;
+  if (requested.size && scenarios.length !== requested.size) {
+    for (const { name } of scenarios) requested.delete(name);
+    throw new Error(`Unknown case names: ${[...requested].map((name) => JSON.stringify(name)).join(', ')}.`);
+  }
   if (values.check) {
-    const count = suite.cases.length;
+    const count = scenarios.length;
     console.log(json ? JSON.stringify({ status: 'valid', cases: count }) :
       `Contract is valid (${count} ${count === 1 ? 'case' : 'cases'}).`);
     return 0;
@@ -103,7 +114,7 @@ async function main(args, json) {
   if (!base.pathname.endsWith('/')) base.pathname += '/';
 
   const cases = [];
-  for (const scenario of suite.cases) {
+  for (const scenario of scenarios) {
     const actual = await evaluate(base, key, scenario);
     const mismatches = [];
     for (const [flag, checks] of Object.entries(scenario.expect)) {

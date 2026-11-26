@@ -25,7 +25,9 @@ test('offline validation needs no endpoint credentials', () => {
 test('JSON reports distinguish rollout mismatches from API failures', async (t) => {
   let unavailable = false;
   let clientFlags;
+  let requests = 0;
   const server = createServer(async (request, response) => {
+    requests++;
     if (unavailable) {
       response.writeHead(503).end();
       return;
@@ -53,9 +55,9 @@ test('JSON reports distinguish rollout mismatches from API failures', async (t) 
     return { feature: { name: 'search_v2' }, enabled, feature_state_value: value };
   }
 
-  function run(contract = 'example.contract.json') {
+  function run(contract = 'example.contract.json', ...options) {
     return new Promise((resolve, reject) => {
-      execFile(process.execPath, ['flag-contract.mjs', contract, '--json'], {
+      execFile(process.execPath, ['flag-contract.mjs', contract, '--json', ...options], {
         cwd: new URL('..', import.meta.url),
         env: {
           ...process.env,
@@ -86,6 +88,17 @@ test('JSON reports distinguish rollout mismatches from API failures', async (t) 
     ],
     [{ flag: 'search_v2', kind: 'missing_flag' }],
   ]);
+
+  const requestsBeforeSelection = requests;
+  const selected = await run('example.contract.json', '--case', 'Free users get standard search');
+  assert.equal(selected.code, 1);
+  assert.deepEqual(JSON.parse(selected.stdout).cases, [report.cases[1]]);
+  assert.equal(requests, requestsBeforeSelection + 1);
+
+  const unknown = await run('example.contract.json', '--case', 'Unknown');
+  assert.equal(unknown.code, 2);
+  assert.match(JSON.parse(unknown.stdout).error, /Unknown case names/);
+  assert.equal(requests, requestsBeforeSelection + 1);
 
   unavailable = true;
   const failure = await run();
