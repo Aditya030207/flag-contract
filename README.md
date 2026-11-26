@@ -57,7 +57,7 @@ The check writes a case-by-case GitHub job summary and fails the job when a case
 
 ## Hackathon demo
 
-The [recorded live run](https://github.com/Aditya030207/flag-contract/actions/runs/45328399501) used self-hosted Flagsmith 2.291.0. The baseline passed all three cases. Widening the beta segment produced two mismatches for free users, while anonymous and beta cases still passed. Restoring the segment brought the suite back to three passes.
+Watch the [66-second demo](https://github.com/Aditya030207/flag-contract/releases/tag/v0.2.0) or inspect the [live CI run and report](https://github.com/Aditya030207/flag-contract/actions/runs/45756404170). The run used self-hosted Flagsmith 2.291.0. The baseline passed all three cases. Widening the beta segment produced two mismatches for free users, while anonymous and beta cases still passed. Restoring the segment brought the suite back to three passes.
 
 To replay the same sequence locally, use Node.js 22+, Docker Compose v2, Bash, and curl:
 
