@@ -1,4 +1,5 @@
 {
+  "$schema": "./contract.schema.json",
   "cases": [
     {
       "name": "Anonymous visitors get standard search",

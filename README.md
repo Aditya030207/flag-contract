@@ -25,6 +25,14 @@ Each case has a unique `name` and an `expect` map keyed by feature name. Each fe
 
 Use `{ "present": false }` to check that the SDK response omits a flag, even if the flag would be disabled when returned. This is useful for checking that a [server-side-only flag](https://docs.flagsmith.com/managing-flags/core-management) stays out of client responses. Use `{ "present": true }` to require a flag without asserting its state. See the [visibility contract](examples/visibility.contract.json) for anonymous and identified examples.
 
+For editor validation, copy [contract.schema.json](contract.schema.json) into your repo and set your contract's `"$schema"` to its relative path. Validate a contract before you have access to Flagsmith:
+
+```sh
+node flag-contract.mjs example.contract.json --check
+```
+
+This also catches duplicate case names. It needs no SDK key or network connection and exits `0` when valid or `2` for invalid input.
+
 Run the same file in CI against each environment by setting the API URL and environment key in the corresponding job. Exit status `0` means all cases passed, `1` means a mismatch, and `2` means a configuration or API error.
 
 Use `--json` to capture a report while keeping the same exit statuses:

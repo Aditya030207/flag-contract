@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { isDeepStrictEqual } from 'node:util';
+import { isDeepStrictEqual, parseArgs } from 'node:util';
 
 const own = (object, key) => Object.hasOwn(object, key);
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -76,13 +76,23 @@ async function evaluate(base, key, scenario) {
 }
 
 async function main(args, json) {
-  const filenames = args.filter((arg) => arg !== '--json');
-  if (filenames.length !== 1 || filenames[0].startsWith('--') || args.length > 2) {
-    throw new Error('Usage: node flag-contract.mjs CONTRACT.json [--json]');
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: { check: { type: 'boolean' }, json: { type: 'boolean' } },
+  });
+  if (positionals.length !== 1) {
+    throw new Error('Usage: node flag-contract.mjs CONTRACT.json [--check] [--json]');
   }
-  const [filename] = filenames;
+  const [filename] = positionals;
   const suite = JSON.parse(await readFile(filename, 'utf8'));
   validate(suite);
+  if (values.check) {
+    const count = suite.cases.length;
+    console.log(json ? JSON.stringify({ status: 'valid', cases: count }) :
+      `Contract is valid (${count} ${count === 1 ? 'case' : 'cases'}).`);
+    return 0;
+  }
   const key = process.env.FLAGSMITH_ENVIRONMENT_KEY?.trim();
   if (!key) throw new Error('Set FLAGSMITH_ENVIRONMENT_KEY to the client-side environment key.');
   const base = new URL(process.env.FLAGSMITH_API_URL || 'http://localhost:8000/api/v1/');

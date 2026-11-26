@@ -1,8 +1,26 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 import test from 'node:test';
+
+test('offline validation needs no endpoint credentials', () => {
+  const run = (file) => spawnSync(process.execPath, ['flag-contract.mjs', file, '--check', '--json'], {
+    cwd: new URL('..', import.meta.url),
+    env: {},
+    encoding: 'utf8',
+  });
+  const valid = run('examples/visibility.contract.json');
+  assert.equal(valid.status, 0);
+  assert.deepEqual(JSON.parse(valid.stdout), { status: 'valid', cases: 2 });
+
+  const invalid = run('contract.schema.json');
+  assert.equal(invalid.status, 2);
+  assert.deepEqual(JSON.parse(invalid.stdout), {
+    status: 'error',
+    error: 'The contract must contain at least one case.',
+  });
+});
 
 test('JSON reports distinguish rollout mismatches from API failures', async (t) => {
   let unavailable = false;

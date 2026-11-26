@@ -1,4 +1,5 @@
 {
+  "$schema": "../contract.schema.json",
   "cases": [
     {
       "name": "Anonymous clients never receive the internal ranking flag",
