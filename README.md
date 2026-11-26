@@ -25,6 +25,14 @@ Each case has a unique `name` and an `expect` map keyed by feature name. Each fe
 
 Run the same file in CI against each environment by setting the API URL and environment key in the corresponding job. Exit status `0` means all cases passed, `1` means a mismatch, and `2` means a configuration or API error.
 
+Use `--json` to capture a report while keeping the same exit statuses:
+
+```sh
+node flag-contract.mjs example.contract.json --json > flag-contract-report.json
+```
+
+A completed report includes `status` (`pass` or `fail`), pass/fail counts, and each named case's mismatches. Missing flags have `kind: "missing_flag"`. Unexpected flag fields include the expected and actual values. An interrupted run returns `status: "error"` with the error message in a separate report shape. Reports omit identity identifiers, traits, and the SDK key. Use synthetic cases and treat reported configuration values as data when sharing CI artifacts.
+
 ## Hackathon demo
 
 The [recorded live run](https://github.com/Aditya030207/flag-contract/actions/runs/45328399501) used self-hosted Flagsmith 2.291.0. The baseline passed all three cases. Widening the beta segment produced two mismatches for free users, while anonymous and beta cases still passed. Restoring the segment brought the suite back to three passes.

@@ -52,6 +52,25 @@ grep -Fxq '  search_v2.enabled: expected false, got true' <<< "$regression_outpu
 grep -Fxq '  search_v2.value: expected "standard", got "hybrid"' <<< "$regression_output"
 grep -Fxq '2/3 cases passed' <<< "$regression_output"
 
+report_status=0
+report=$(node flag-contract.mjs example.contract.json --json) || report_status=$?
+if [[ $report_status != 1 ]]; then
+  printf 'Expected the JSON report to exit 1, got exit %s\n' "$report_status" >&2
+  exit 1
+fi
+node --input-type=module -e '
+  import assert from "node:assert/strict";
+  import { readFileSync } from "node:fs";
+  const report = JSON.parse(readFileSync(0, "utf8"));
+  assert.equal(report.status, "fail");
+  assert.equal(report.passed, 2);
+  assert.equal(report.failed, 1);
+  const failure = report.cases.find(({ status }) => status === "fail");
+  assert.equal(failure.name, "Free users get standard search");
+  assert.deepEqual(failure.mismatches.map(({ field }) => field).sort(), ["enabled", "value"]);
+  console.log("JSON report verified against live Flagsmith");
+' <<< "$report"
+
 printf '\nRestored · Beta segment matches plan=beta again\n'
 apply_stage restored
 node flag-contract.mjs example.contract.json

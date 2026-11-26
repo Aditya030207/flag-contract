@@ -71,9 +71,12 @@ async function evaluate(base, key, scenario) {
   }]));
 }
 
-async function main() {
-  const [, , filename, ...extra] = process.argv;
-  if (!filename || extra.length) throw new Error('Usage: node flag-contract.mjs CONTRACT.json');
+async function main(args, json) {
+  const filenames = args.filter((arg) => arg !== '--json');
+  if (filenames.length !== 1 || filenames[0].startsWith('--') || args.length > 2) {
+    throw new Error('Usage: node flag-contract.mjs CONTRACT.json [--json]');
+  }
+  const [filename] = filenames;
   const suite = JSON.parse(await readFile(filename, 'utf8'));
   validate(suite);
   const key = process.env.FLAGSMITH_ENVIRONMENT_KEY?.trim();
@@ -85,35 +88,55 @@ async function main() {
   }
   if (!base.pathname.endsWith('/')) base.pathname += '/';
 
-  let failed = 0;
+  const cases = [];
   for (const scenario of suite.cases) {
     const actual = await evaluate(base, key, scenario);
-    let mismatches = 0;
+    const mismatches = [];
     for (const [flag, checks] of Object.entries(scenario.expect)) {
       const state = actual.get(flag);
       if (!state) {
-        console.error(`  ${flag}: flag missing`);
-        mismatches++;
+        mismatches.push({ flag, kind: 'missing_flag' });
         continue;
       }
       for (const [field, expected] of Object.entries(checks)) {
         if (!isDeepStrictEqual(state[field], expected)) {
-          console.error(`  ${flag}.${field}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(state[field])}`);
-          mismatches++;
+          mismatches.push({ flag, kind: 'unexpected_value', field, expected, actual: state[field] });
         }
       }
     }
-    const status = mismatches ? 'FAIL' : 'PASS';
-    console.log(`${status} ${scenario.name}`);
-    failed += Number(mismatches > 0);
+    const status = mismatches.length ? 'fail' : 'pass';
+    cases.push({ name: scenario.name, status, mismatches });
+    if (!json) {
+      for (const mismatch of mismatches) {
+        const { flag, kind, field, expected, actual: received } = mismatch;
+        if (kind === 'missing_flag') {
+          console.error(`  ${flag}: flag missing`);
+        } else {
+          console.error(`  ${flag}.${field}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(received)}`);
+        }
+      }
+      console.log(`${status.toUpperCase()} ${scenario.name}`);
+    }
   }
-  console.log(`${suite.cases.length - failed}/${suite.cases.length} cases passed`);
+  const failed = cases.filter(({ status }) => status === 'fail').length;
+  const passed = cases.length - failed;
+  if (json) {
+    console.log(JSON.stringify({ status: failed ? 'fail' : 'pass', passed, failed, cases }, null, 2));
+  } else {
+    console.log(`${passed}/${cases.length} cases passed`);
+  }
   return failed ? 1 : 0;
 }
 
+const args = process.argv.slice(2);
+const json = args.includes('--json');
 try {
-  process.exitCode = await main();
+  process.exitCode = await main(args, json);
 } catch (error) {
-  console.error(`ERROR: ${error.message}`);
+  if (json) {
+    console.log(JSON.stringify({ status: 'error', error: error.message }));
+  } else {
+    console.error(`ERROR: ${error.message}`);
+  }
   process.exitCode = 2;
 }
