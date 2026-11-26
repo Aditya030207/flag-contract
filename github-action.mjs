@@ -16,7 +16,11 @@ function summarize(report) {
   for (const scenario of report.cases) {
     lines.push(`${scenario.status.toUpperCase()} ${JSON.stringify(scenario.name)}`);
     for (const { flag, kind, field } of scenario.mismatches) {
-      const detail = kind === 'missing_flag' ? 'missing flag' : `unexpected ${field}`;
+      const detail = {
+        missing_flag: 'missing flag',
+        unexpected_flag: 'expected flag to be absent',
+        unexpected_value: `unexpected ${field}`,
+      }[kind];
       lines.push(`  ${JSON.stringify(flag)}: ${detail}`);
     }
   }

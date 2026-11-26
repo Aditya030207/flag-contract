@@ -23,6 +23,8 @@ Change the segment rule to also match `plan=free` and rerun. The free-user case 
 
 Each case has a unique `name` and an `expect` map keyed by feature name. Each feature can assert `enabled`, `value`, or both. An omitted `identity` checks the environment defaults. Set an `identity` and optional scalar `traits` to evaluate a synthetic participant. Values are compared as returned by the SDK API, including string versus number differences. Use dedicated synthetic IDs and avoid real user data in contracts.
 
+Use `{ "present": false }` to check that the SDK response omits a flag, even if the flag would be disabled when returned. This is useful for checking that a [server-side-only flag](https://docs.flagsmith.com/managing-flags/core-management) stays out of client responses. Use `{ "present": true }` to require a flag without asserting its state. See the [visibility contract](examples/visibility.contract.json) for anonymous and identified examples.
+
 Run the same file in CI against each environment by setting the API URL and environment key in the corresponding job. Exit status `0` means all cases passed, `1` means a mismatch, and `2` means a configuration or API error.
 
 Use `--json` to capture a report while keeping the same exit statuses:
@@ -31,7 +33,7 @@ Use `--json` to capture a report while keeping the same exit statuses:
 node flag-contract.mjs example.contract.json --json > flag-contract-report.json
 ```
 
-A completed report includes `status` (`pass` or `fail`), pass/fail counts, and each named case's mismatches. Missing flags have `kind: "missing_flag"`. Unexpected flag fields include the expected and actual values. An interrupted run returns `status: "error"` with the error message in a separate report shape. Reports omit identity identifiers, traits, and the SDK key. Use synthetic cases and treat reported configuration values as data when sharing CI artifacts.
+A completed report includes `status` (`pass` or `fail`), pass/fail counts, and each named case's mismatches. Missing and unexpectedly visible flags use `missing_flag` and `unexpected_flag`, respectively. Unexpected flag fields include the expected and actual values. An interrupted run returns `status: "error"` with the error message in a separate report shape. Reports omit identity identifiers, traits, and the SDK key. Use synthetic cases and treat reported configuration values as data when sharing CI artifacts.
 
 ## Run as a GitHub Action
 
@@ -40,7 +42,7 @@ Add a contract to your repository and place these steps in your workflow after c
 ```yaml
 - name: Check rollout
   id: flag-contract
-  uses: Aditya030207/flag-contract@v0.2.0
+  uses: Aditya030207/flag-contract@v0.3.0
   with:
     contract: flag-contract.json
     api-url: ${{ vars.FLAGSMITH_API_URL }}
@@ -65,7 +67,7 @@ To replay the same sequence locally, use Node.js 22+, Docker Compose v2, Bash, a
 bash demo/run.sh
 ```
 
-The script starts a disposable instance with its own database and an available loopback port. It uses the official Compose setup and removes that demo instance and its data when the run ends.
+The script also verifies a second scenario by making a sample internal flag client-visible, checking that both client cases detect it, and restoring the original setting. It starts a disposable instance with its own database and an available loopback port, uses the official Compose setup, and removes the demo instance and data when the run ends.
 
 ## Flagsmith integration
 

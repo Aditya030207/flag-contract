@@ -27,6 +27,15 @@ def configure_demo(stage):
         name="search_v2",
         defaults={"default_enabled": False, "initial_value": "standard"},
     )
+    internal, _ = Feature.objects.get_or_create(
+        project=project,
+        name="internal_ranker",
+        defaults={"default_enabled": True, "is_server_key_only": True},
+    )
+    server_only = stage != "exposed"
+    if internal.is_server_key_only != server_only:
+        internal.is_server_key_only = server_only
+        internal.save(update_fields=["is_server_key_only"])
     segment, _ = Segment.objects.get_or_create(project=project, name="Beta search")
     rule, _ = SegmentRule.objects.get_or_create(
         segment=segment, type=SegmentRule.ANY_RULE
@@ -53,6 +62,6 @@ def configure_demo(stage):
 
 
 stage = os.environ["DEMO_STAGE"]
-if stage not in {"baseline", "regression", "restored"}:
+if stage not in {"baseline", "regression", "restored", "exposed"}:
     raise ValueError(f"Unknown demo stage: {stage}")
 configure_demo(stage)

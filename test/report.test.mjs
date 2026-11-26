@@ -6,9 +6,15 @@ import test from 'node:test';
 
 test('JSON reports distinguish rollout mismatches from API failures', async (t) => {
   let unavailable = false;
+  let clientFlags;
   const server = createServer(async (request, response) => {
     if (unavailable) {
       response.writeHead(503).end();
+      return;
+    }
+    if (clientFlags) {
+      const body = request.url === '/api/v1/flags/' ? clientFlags : { flags: clientFlags };
+      response.end(JSON.stringify(body));
       return;
     }
     if (request.url === '/api/v1/flags/') {
@@ -29,9 +35,9 @@ test('JSON reports distinguish rollout mismatches from API failures', async (t) 
     return { feature: { name: 'search_v2' }, enabled, feature_state_value: value };
   }
 
-  function run() {
+  function run(contract = 'example.contract.json') {
     return new Promise((resolve, reject) => {
-      execFile(process.execPath, ['flag-contract.mjs', 'example.contract.json', '--json'], {
+      execFile(process.execPath, ['flag-contract.mjs', contract, '--json'], {
         cwd: new URL('..', import.meta.url),
         env: {
           ...process.env,
@@ -71,4 +77,18 @@ test('JSON reports distinguish rollout mismatches from API failures', async (t) 
     status: 'error',
     error: 'Flagsmith returned HTTP 503.',
   });
+
+  unavailable = false;
+  clientFlags = [flag(true, 'hybrid')];
+  const hidden = await run('examples/visibility.contract.json');
+  assert.equal(hidden.code, 0);
+  assert.equal(JSON.parse(hidden.stdout).passed, 2);
+
+  clientFlags.push({ ...flag(false, null), feature: { name: 'internal_ranker' } });
+  const exposed = await run('examples/visibility.contract.json');
+  assert.equal(exposed.code, 1);
+  assert.deepEqual(JSON.parse(exposed.stdout).cases.map(({ mismatches }) => mismatches), [
+    [{ flag: 'internal_ranker', kind: 'unexpected_flag' }],
+    [{ flag: 'internal_ranker', kind: 'unexpected_flag' }],
+  ]);
 });

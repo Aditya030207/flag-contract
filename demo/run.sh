@@ -86,3 +86,26 @@ fi
 printf '\nRestored · Beta segment matches plan=beta again\n'
 apply_stage restored
 node flag-contract.mjs example.contract.json
+
+printf '\nVisibility · Internal ranking flag is server-side only\n'
+node flag-contract.mjs examples/visibility.contract.json
+
+printf '\nExposure regression · Internal flag is now client-visible\n'
+apply_stage exposed
+visibility_status=0
+visibility=$(node flag-contract.mjs examples/visibility.contract.json --json) || visibility_status=$?
+test "$visibility_status" = 1
+node --input-type=module -e '
+  import assert from "node:assert/strict";
+  import { readFileSync } from "node:fs";
+  const report = JSON.parse(readFileSync(0, "utf8"));
+  assert.equal(report.failed, 2);
+  for (const check of report.cases) {
+    assert.deepEqual(check.mismatches, [{ flag: "internal_ranker", kind: "unexpected_flag" }]);
+  }
+  console.log("Unexpected visibility detected for anonymous and identified clients");
+' <<< "$visibility"
+
+printf '\nVisibility restored · Internal flag is server-side only again\n'
+apply_stage restored
+node flag-contract.mjs examples/visibility.contract.json

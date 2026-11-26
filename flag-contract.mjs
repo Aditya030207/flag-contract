@@ -28,9 +28,13 @@ function validate(suite) {
     }
     for (const [flag, checks] of Object.entries(expect)) {
       if (!flag.trim() || !isObject(checks) || !Object.keys(checks).length ||
-          Object.keys(checks).some((key) => !['enabled', 'value'].includes(key)) ||
+          Object.keys(checks).some((key) => !['present', 'enabled', 'value'].includes(key)) ||
+          (own(checks, 'present') && typeof checks.present !== 'boolean') ||
           (own(checks, 'enabled') && typeof checks.enabled !== 'boolean')) {
-        throw new Error(`${name}: ${flag} needs an enabled and/or value assertion.`);
+        throw new Error(`${name}: ${flag} needs a present, enabled, or value assertion.`);
+      }
+      if (checks.present === false && Object.keys(checks).length > 1) {
+        throw new Error(`${name}: ${flag} cannot assert enabled or value when present is false.`);
       }
     }
   }
@@ -94,11 +98,16 @@ async function main(args, json) {
     const mismatches = [];
     for (const [flag, checks] of Object.entries(scenario.expect)) {
       const state = actual.get(flag);
+      if (checks.present === false) {
+        if (state) mismatches.push({ flag, kind: 'unexpected_flag' });
+        continue;
+      }
       if (!state) {
         mismatches.push({ flag, kind: 'missing_flag' });
         continue;
       }
       for (const [field, expected] of Object.entries(checks)) {
+        if (field === 'present') continue;
         if (!isDeepStrictEqual(state[field], expected)) {
           mismatches.push({ flag, kind: 'unexpected_value', field, expected, actual: state[field] });
         }
@@ -111,6 +120,8 @@ async function main(args, json) {
         const { flag, kind, field, expected, actual: received } = mismatch;
         if (kind === 'missing_flag') {
           console.error(`  ${flag}: flag missing`);
+        } else if (kind === 'unexpected_flag') {
+          console.error(`  ${flag}: expected flag to be absent, but it was returned`);
         } else {
           console.error(`  ${flag}.${field}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(received)}`);
         }

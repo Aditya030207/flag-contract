@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {
+      "name": "Anonymous clients never receive the internal ranking flag",
+      "expect": {
+        "search_v2": { "present": true },
+        "internal_ranker": { "present": false }
+      }
+    },
+    {
+      "name": "Identified clients never receive the internal ranking flag",
+      "identity": "contract-demo-client",
+      "traits": { "plan": "beta" },
+      "expect": {
+        "search_v2": { "present": true },
+        "internal_ranker": { "present": false }
+      }
+    }
+  ]
+}
