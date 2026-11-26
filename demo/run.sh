@@ -2,11 +2,12 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-compose_file=$(mktemp)
+demo_dir=$(mktemp -d)
+compose_file="$demo_dir/compose.yml"
 compose=(docker compose -p "flag-contract-demo-$$" -f "$compose_file")
 cleanup() {
   "${compose[@]}" down --volumes >/dev/null
-  rm -f -- "$compose_file"
+  rm -r -- "$demo_dir"
 }
 trap cleanup EXIT
 
@@ -53,11 +54,19 @@ grep -Fxq '  search_v2.value: expected "standard", got "hybrid"' <<< "$regressio
 grep -Fxq '2/3 cases passed' <<< "$regression_output"
 
 report_status=0
-report=$(node flag-contract.mjs example.contract.json --json) || report_status=$?
+summary=${GITHUB_STEP_SUMMARY:-"$demo_dir/summary.md"}
+FLAG_CONTRACT_FILE=example.contract.json \
+  GITHUB_OUTPUT="$demo_dir/action-output" \
+  GITHUB_STEP_SUMMARY="$summary" \
+  RUNNER_TEMP="$demo_dir" \
+  node github-action.mjs || report_status=$?
 if [[ $report_status != 1 ]]; then
-  printf 'Expected the JSON report to exit 1, got exit %s\n' "$report_status" >&2
+  printf 'Expected the CI check to exit 1, got exit %s\n' "$report_status" >&2
   exit 1
 fi
+grep -Fxq 'status=fail' "$demo_dir/action-output"
+grep -Fq 'Flag Contract: 2/3 passed' "$summary"
+report_path=$(sed -n 's/^report-path=//p' "$demo_dir/action-output")
 node --input-type=module -e '
   import assert from "node:assert/strict";
   import { readFileSync } from "node:fs";
@@ -68,8 +77,11 @@ node --input-type=module -e '
   const failure = report.cases.find(({ status }) => status === "fail");
   assert.equal(failure.name, "Free users get standard search");
   assert.deepEqual(failure.mismatches.map(({ field }) => field).sort(), ["enabled", "value"]);
-  console.log("JSON report verified against live Flagsmith");
-' <<< "$report"
+  console.log("CI summary and JSON report verified against live Flagsmith");
+' < "$report_path"
+if [[ -n ${DEMO_JSON_REPORT:-} ]]; then
+  cp -- "$report_path" "$DEMO_JSON_REPORT"
+fi
 
 printf '\nRestored · Beta segment matches plan=beta again\n'
 apply_stage restored

@@ -13,9 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Test CLI report handling
+        run: node --test
       - name: Verify baseline, regression, and recovery
-        run: bash demo/run.sh
+        run: DEMO_JSON_REPORT="$RUNNER_TEMP/flag-contract-demo.json" bash demo/run.sh
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: flag-contract-demo-report
+          path: ${{ runner.temp }}/flag-contract-demo.json
+          if-no-files-found: error

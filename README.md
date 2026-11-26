@@ -2,7 +2,7 @@
 
 Flag Contract checks what your users actually receive from Flagsmith. Store expected rollout behavior in Git, run it against a self-hosted environment, and fail CI if a flag change gives the wrong audience access or returns the wrong configuration.
 
-The runner calls Flagsmith's SDK API for anonymous flags and for synthetic identities with transient traits. Flagsmith evaluates the rollout and segment rules. The runner compares the responses with your contract and reports mismatches.
+Run it from the command line or as a GitHub Action. The runner calls Flagsmith's SDK API for anonymous flags and for synthetic identities with transient traits. Flagsmith evaluates the rollout and segment rules. The runner compares the responses with your contract and reports mismatches.
 
 ## Try the example
 
@@ -32,6 +32,28 @@ node flag-contract.mjs example.contract.json --json > flag-contract-report.json
 ```
 
 A completed report includes `status` (`pass` or `fail`), pass/fail counts, and each named case's mismatches. Missing flags have `kind: "missing_flag"`. Unexpected flag fields include the expected and actual values. An interrupted run returns `status: "error"` with the error message in a separate report shape. Reports omit identity identifiers, traits, and the SDK key. Use synthetic cases and treat reported configuration values as data when sharing CI artifacts.
+
+## Run as a GitHub Action
+
+Add a contract to your repository and place these steps in your workflow after checkout. Set `FLAGSMITH_API_URL` as a repository variable and `FLAGSMITH_ENVIRONMENT_KEY` as a secret. Use a runner that can reach your Flagsmith instance.
+
+```yaml
+- name: Check rollout
+  id: flag-contract
+  uses: Aditya030207/flag-contract@v0.2.0
+  with:
+    contract: flag-contract.json
+    api-url: ${{ vars.FLAGSMITH_API_URL }}
+    environment-key: ${{ secrets.FLAGSMITH_ENVIRONMENT_KEY }}
+- name: Save the report
+  if: ${{ always() && steps.flag-contract.outputs.report-path != '' }}
+  uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+  with:
+    name: flag-contract-report
+    path: ${{ steps.flag-contract.outputs.report-path }}
+```
+
+The check writes a case-by-case GitHub job summary and fails the job when a case fails or the API cannot be evaluated. The upload step uses `always()` so the report is available for investigating failures. Run the check after applying candidate targeting rules to a staging or disposable Flagsmith environment.
 
 ## Hackathon demo
 
