@@ -4,10 +4,24 @@ Flag Contract checks what your users actually receive from Flagsmith. Store expe
 
 Run it from the command line or as a GitHub Action. The runner calls Flagsmith's SDK API for anonymous flags and for synthetic identities with transient traits. Flagsmith evaluates the rollout and segment rules. The runner compares the responses with your contract and reports mismatches.
 
-## Try the example
+## Reproduce the demo
+
+With Node.js 22+, Bash, curl, and Docker running with Compose v2:
+
+```sh
+git clone https://github.com/Aditya030207/flag-contract.git
+cd flag-contract
+bash demo/run.sh
+```
+
+The script starts a disposable Flagsmith 2.291.0 instance and database, creates test flags, and evaluates synthetic identities. It removes the demo containers and data at the end. The first run pulls Docker images. No Flagsmith account or existing environment key is needed.
+
+Expect two deliberate failures followed by recovery. The demo catches a beta rule that includes free users and an internal flag that appears in client responses. See the [verified run and both JSON reports](https://github.com/Aditya030207/flag-contract/actions/runs/46002460299) for the recorded results.
+
+## Use your own Flagsmith instance
 
 1. Run [self-hosted Flagsmith](https://docs.flagsmith.com/deployment-self-hosting/hosting-guides/docker) and create a project.
-2. In its demo environment, create a feature called `search_v2` with enabled set to false and value set to `standard`.
+2. Select or create a test environment, then create a feature called `search_v2`. In that environment, set enabled to false and value to `standard`.
 3. Create a segment that matches the trait `plan` exactly to `beta`. Add a segment override for `search_v2` with enabled set to true and value set to `hybrid`.
 4. With Node.js 22 or newer, run the following command using the environment's **client-side** SDK key. Keep keys in your local environment or CI secrets.
 
@@ -46,10 +60,12 @@ To use the CLI without cloning this repo, install the package from the GitHub re
 
 ```sh
 npm install --global https://github.com/Aditya030207/flag-contract/releases/download/v0.4.0/aditya030207-flag-contract-0.4.0.tgz
+curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.4.0/example.contract.json
+curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.4.0/contract.schema.json
 flag-contract example.contract.json --check
 ```
 
-Use your own contract file, or [download the example](example.contract.json) and its [schema](contract.schema.json). Node.js 22+ is required.
+Node.js 22+ is required.
 
 Run the same file in CI against each environment by setting the API URL and environment key in the corresponding job. Exit status `0` means all cases passed, `1` means a mismatch, and `2` means a configuration or API error.
 
@@ -89,7 +105,7 @@ To validate contracts in pull requests without an environment key, use the curre
 
 ## Hackathon demo
 
-Download the [demo video from the v0.4.0 release](https://github.com/Aditya030207/flag-contract/releases/tag/v0.4.0) or inspect the [passing integration run and its reports](https://github.com/Aditya030207/flag-contract/actions/runs/45878945428). The run used self-hosted Flagsmith 2.291.0 and exercised both scenarios:
+Download the [demo video from the v0.4.0 release](https://github.com/Aditya030207/flag-contract/releases/tag/v0.4.0). The self-hosted workflow exercised both scenarios:
 
 | Scenario | Baseline | Deliberate regression | After restoring the configuration |
 | --- | --- | --- | --- |
@@ -97,14 +113,6 @@ Download the [demo video from the v0.4.0 release](https://github.com/Aditya03020
 | Internal flag visibility | Both client cases passed | Making the internal flag client-visible caused both client cases to fail | Both client cases passed |
 
 Open the [self-hosted demo workflow runs](https://github.com/Aditya030207/flag-contract/actions/workflows/self-hosted.yml) to download the JSON evidence from a successful run. The `flag-contract-demo-report` artifact shows the targeting mismatches, and `flag-contract-visibility-report` shows the unexpected flag returned to both clients. The artifacts capture the deliberately failing checks. The workflow passes when it detects those failures and confirms recovery.
-
-To replay the same sequence locally, use Node.js 22+, Docker Compose v2, Bash, and curl:
-
-```sh
-bash demo/run.sh
-```
-
-The script also verifies a second scenario by making a sample internal flag client-visible, checking that both client cases detect it, and restoring the original setting. It starts a disposable instance with its own database and an available loopback port, uses the official Compose setup, and removes the demo instance and data when the run ends.
 
 ## Flagsmith integration
 
