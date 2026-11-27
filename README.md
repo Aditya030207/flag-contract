@@ -80,6 +80,8 @@ Add a contract to your repository and place these steps in your workflow after c
 
 The check writes a case-by-case GitHub job summary and fails the job when a case fails or the API cannot be evaluated. The upload step uses `always()` so the report is available for investigating failures. Run the check after applying candidate targeting rules to a staging or disposable Flagsmith environment.
 
+To validate contracts in pull requests without an environment key, use the current Action from `main` with `check-only: 'true'` and omit `api-url` and `environment-key`. A valid contract produces the `valid` status and a JSON report with its case count. Run the live check separately against a reachable Flagsmith instance to verify flag behavior.
+
 ## Hackathon demo
 
 Download the [demo video from the v0.4.0 release](https://github.com/Aditya030207/flag-contract/releases/tag/v0.4.0) or inspect the [passing integration run and its reports](https://github.com/Aditya030207/flag-contract/actions/runs/45878945428). The run used self-hosted Flagsmith 2.291.0 and exercised both scenarios:

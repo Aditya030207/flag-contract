@@ -22,6 +22,24 @@ jobs:
           package-manager-cache: false
       - name: Test CLI report handling
         run: node --test
+      - name: Validate the example as a GitHub Action without credentials
+        id: validate-contract
+        uses: ./
+        with:
+          contract: example.contract.json
+          check-only: 'true'
+      - name: Verify the offline Action output
+        env:
+          REPORT_PATH: ${{ steps.validate-contract.outputs.report-path }}
+          REPORT_STATUS: ${{ steps.validate-contract.outputs.status }}
+        run: |
+          test "$REPORT_STATUS" = valid
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { readFileSync } from "node:fs";
+            const report = JSON.parse(readFileSync(process.env.REPORT_PATH, "utf8"));
+            assert.deepEqual(report, { status: "valid", cases: 3 });
+          '
       - name: Verify baseline, regression, and recovery
         run: DEMO_JSON_REPORT="$RUNNER_TEMP/flag-contract-demo.json" bash demo/run.sh
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

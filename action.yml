@@ -5,17 +5,20 @@ inputs:
     description: Path to the JSON contract relative to the checked-out repository
     required: true
   api-url:
-    description: Flagsmith SDK API base URL, ending in /api/v1/
-    required: true
+    description: Flagsmith SDK API base URL for live checks, ending in /api/v1/
+    required: false
   environment-key:
-    description: Client-side SDK environment key
-    required: true
+    description: Client-side SDK environment key for live checks
+    required: false
+  check-only:
+    description: Set to true to validate the JSON contract offline
+    default: 'false'
 outputs:
   report-path:
     description: Absolute path to the JSON report on the runner
     value: ${{ steps.verify.outputs.report-path }}
   status:
-    description: Contract result (pass, fail, or error)
+    description: Contract result (pass, fail, valid, or error)
     value: ${{ steps.verify.outputs.status }}
 runs:
   using: composite
@@ -29,6 +32,7 @@ runs:
       shell: bash
       env:
         FLAG_CONTRACT_FILE: ${{ inputs.contract }}
+        FLAG_CONTRACT_CHECK_ONLY: ${{ inputs.check-only }}
         FLAGSMITH_API_URL: ${{ inputs.api-url }}
         FLAGSMITH_ENVIRONMENT_KEY: ${{ inputs.environment-key }}
       run: node "$GITHUB_ACTION_PATH/github-action.mjs"

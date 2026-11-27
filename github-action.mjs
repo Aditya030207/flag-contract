@@ -8,8 +8,12 @@ function escapeHtml(text) {
 }
 
 function summarize(report) {
+  if (report.status === 'valid') {
+    const unit = report.cases === 1 ? 'case' : 'cases';
+    return `## Flag Contract: valid contract\n\nValidated ${report.cases} ${unit} offline.\n`;
+  }
   if (report.status === 'error') {
-    return '## Flag Contract: could not check rollout\n\nSee the JSON report for the configuration or API error.\n';
+    return '## Flag Contract: could not check contract\n\nSee the JSON report for the error.\n';
   }
 
   const lines = [];
@@ -29,17 +33,24 @@ function summarize(report) {
 }
 
 function run() {
-  const { FLAG_CONTRACT_FILE, GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, RUNNER_TEMP } = process.env;
+  const { FLAG_CONTRACT_FILE, FLAG_CONTRACT_CHECK_ONLY = 'false',
+    GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, RUNNER_TEMP } = process.env;
   if (!GITHUB_OUTPUT || !GITHUB_STEP_SUMMARY || !RUNNER_TEMP) {
     throw new Error('Flag Contract Action requires GitHub Actions runner paths.');
+  }
+  if (!['true', 'false'].includes(FLAG_CONTRACT_CHECK_ONLY)) {
+    throw new Error('The check-only input must be true or false.');
   }
 
   const reportPath = join(mkdtempSync(join(RUNNER_TEMP, 'flag-contract-')), 'report.json');
   const descriptor = openSync(reportPath, 'wx', 0o600);
   const cli = fileURLToPath(new URL('./flag-contract.mjs', import.meta.url));
+  const args = [cli, '--json'];
+  if (FLAG_CONTRACT_CHECK_ONLY === 'true') args.push('--check');
+  if (FLAG_CONTRACT_FILE) args.push('--', FLAG_CONTRACT_FILE);
   let child;
   try {
-    child = spawnSync(process.execPath, [cli, ...(FLAG_CONTRACT_FILE ? [FLAG_CONTRACT_FILE] : []), '--json'], {
+    child = spawnSync(process.execPath, args, {
       stdio: ['ignore', descriptor, 'inherit'],
     });
   } finally {
