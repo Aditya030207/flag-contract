@@ -111,6 +111,7 @@ node flag-contract.mjs example.contract.json
 
 printf '\nVisibility · Internal ranking flag is server-side only\n'
 node flag-contract.mjs examples/visibility.contract.json
+node flag-contract.mjs examples/client-surface.contract.json
 
 printf '\nExposure regression · Internal flag is now client-visible\n'
 apply_stage exposed
@@ -131,6 +132,25 @@ if [[ -n ${DEMO_VISIBILITY_JSON_REPORT:-} ]]; then
   printf '%s\n' "$visibility" > "$DEMO_VISIBILITY_JSON_REPORT"
 fi
 
+# The client surface contract contains only the public flag name.
+surface_status=0
+FLAG_CONTRACT_FILE=examples/client-surface.contract.json \
+  GITHUB_OUTPUT="$demo_dir/surface-output" GITHUB_STEP_SUMMARY="$summary" RUNNER_TEMP="$demo_dir" \
+  node github-action.mjs || surface_status=$?
+test "$surface_status" = 1
+surface_report=$(sed -n 's/^report-path=//p' "$demo_dir/surface-output")
+node --input-type=module -e '
+  import assert from "node:assert/strict";
+  import { readFileSync } from "node:fs";
+  const report = JSON.parse(readFileSync(0, "utf8"));
+  assert.equal(report.failed, 2);
+  for (const scenario of report.cases) {
+    assert.deepEqual(scenario.mismatches, [{ flag: "internal_ranker", kind: "unlisted_flag" }]);
+  }
+' < "$surface_report"
+grep -Fq 'returned to the client but not listed in this case' "$summary"
+
 printf '\nVisibility restored · Internal flag is server-side only again\n'
 apply_stage restored
 node flag-contract.mjs examples/visibility.contract.json
+node flag-contract.mjs examples/client-surface.contract.json

@@ -23,6 +23,7 @@ function summarize(report, redactValues) {
       const detail = {
         missing_flag: 'missing flag',
         unexpected_flag: 'expected flag to be absent',
+        unlisted_flag: 'returned to the client but not listed in this case',
         unexpected_value: `unexpected ${field}`,
       }[kind];
       lines.push(`  ${JSON.stringify(flag)}: ${detail}`);

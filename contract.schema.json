@@ -11,16 +11,21 @@
         "type": "object",
         "required": ["name", "expect"],
         "dependentRequired": { "traits": ["identity"] },
+        "if": {
+          "required": ["onlyExpectedFlags"],
+          "properties": { "onlyExpectedFlags": { "const": true } }
+        },
+        "else": { "properties": { "expect": { "minProperties": 1 } } },
         "properties": {
           "name": { "type": "string", "pattern": "\\S" },
           "identity": { "type": "string", "pattern": "\\S" },
+          "onlyExpectedFlags": { "type": "boolean" },
           "traits": {
             "type": "object",
             "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
           },
           "expect": {
             "type": "object",
-            "minProperties": 1,
             "propertyNames": { "pattern": "\\S" },
             "additionalProperties": { "$ref": "#/$defs/assertion" }
           }

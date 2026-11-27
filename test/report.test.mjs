@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFile, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 function runOffline(file, ...options) {
@@ -150,4 +153,37 @@ test('JSON reports distinguish rollout mismatches from API failures', async (t) 
     [{ flag: 'internal_ranker', kind: 'unexpected_flag' }],
     [{ flag: 'internal_ranker', kind: 'unexpected_flag' }],
   ]);
+
+  clientFlags.push({ ...flag(false, 'private-config'), feature: { name: 'another_internal_flag' } });
+  const surface = await run('examples/client-surface.contract.json');
+  assert.equal(surface.code, 1);
+  const extras = [
+    { flag: 'another_internal_flag', kind: 'unlisted_flag' },
+    { flag: 'internal_ranker', kind: 'unlisted_flag' },
+  ];
+  assert.deepEqual(JSON.parse(surface.stdout).cases.map(({ mismatches }) => mismatches), [extras, extras]);
+  assert.doesNotMatch(surface.stdout, /private-config/);
+
+  const dir = mkdtempSync(join(tmpdir(), 'flag-contract-surface-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'surface.json');
+  function writeCase(fields) {
+    writeFileSync(file, JSON.stringify({ cases: [{ name: 'Client surface', ...fields }] }));
+  }
+  writeCase({ onlyExpectedFlags: true, expect: { internal_ranker: { present: false } } });
+  const combined = JSON.parse((await run(file)).stdout).cases[0];
+  assert.deepEqual(combined.mismatches, [
+    { flag: 'internal_ranker', kind: 'unexpected_flag' },
+    extras[0],
+    { flag: 'search_v2', kind: 'unlisted_flag' },
+  ]);
+  clientFlags = [];
+  writeCase({ onlyExpectedFlags: true, expect: {} });
+  assert.equal((await run(file)).code, 0);
+  clientFlags = [flag(false, null)];
+  assert.equal((await run(file)).code, 1);
+  writeCase({ expect: {} });
+  assert.equal(runOffline(file, '--check').status, 2);
+  writeCase({ onlyExpectedFlags: 'false', expect: { search_v2: { present: true } } });
+  assert.equal(runOffline(file, '--check').status, 2);
 });

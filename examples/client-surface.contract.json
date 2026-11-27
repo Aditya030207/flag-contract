@@ -1,0 +1,17 @@
+{
+  "$schema": "../contract.schema.json",
+  "cases": [
+    {
+      "name": "Anonymous clients receive only public search",
+      "onlyExpectedFlags": true,
+      "expect": { "search_v2": { "present": true } }
+    },
+    {
+      "name": "Beta clients receive only hybrid search",
+      "identity": "contract-demo-client",
+      "traits": { "plan": "beta" },
+      "onlyExpectedFlags": true,
+      "expect": { "search_v2": { "enabled": true, "value": "hybrid" } }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "@aditya030207/flag-contract",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Contract tests for audience-level feature flag behavior in Flagsmith",
   "license": "MIT",
   "repository": {

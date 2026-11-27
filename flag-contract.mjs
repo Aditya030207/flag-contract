@@ -12,7 +12,7 @@ function validate(suite) {
   }
   const names = new Set();
   for (const scenario of suite.cases) {
-    const { name, identity, traits, expect } = scenario ?? {};
+    const { name, identity, traits, expect, onlyExpectedFlags } = scenario ?? {};
     if (typeof name !== 'string' || !name.trim() || names.has(name)) {
       throw new Error('Every case needs a unique name.');
     }
@@ -24,7 +24,10 @@ function validate(suite) {
         (!identity || !isObject(traits) || !Object.values(traits).every(isScalar))) {
       throw new Error(`${name}: traits need an identity and scalar JSON values.`);
     }
-    if (!isObject(expect) || !Object.keys(expect).length) {
+    if (onlyExpectedFlags !== undefined && typeof onlyExpectedFlags !== 'boolean') {
+      throw new Error(`${name}: onlyExpectedFlags must be a boolean.`);
+    }
+    if (!isObject(expect) || (!onlyExpectedFlags && !Object.keys(expect).length)) {
       throw new Error(`${name}: specify at least one expected flag.`);
     }
     for (const [flag, checks] of Object.entries(expect)) {
@@ -148,6 +151,11 @@ async function main(args, json) {
         }
       }
     }
+    if (scenario.onlyExpectedFlags) {
+      for (const flag of [...actual.keys()].sort()) {
+        if (!own(scenario.expect, flag)) mismatches.push({ flag, kind: 'unlisted_flag' });
+      }
+    }
     const status = mismatches.length ? 'fail' : 'pass';
     cases.push({ name: scenario.name, status, mismatches });
     if (!json) {
@@ -157,6 +165,8 @@ async function main(args, json) {
           console.error(`  ${flag}: flag missing`);
         } else if (kind === 'unexpected_flag') {
           console.error(`  ${flag}: expected flag to be absent, but it was returned`);
+        } else if (kind === 'unlisted_flag') {
+          console.error(`  ${flag}: returned to the client but not listed in this case`);
         } else if (redacted) {
           console.error(`  ${flag}.${field}: unexpected value (redacted)`);
         } else {

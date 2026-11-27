@@ -39,6 +39,22 @@ Each case has a unique `name` and an `expect` map keyed by feature name. Each fe
 
 Use `{ "present": false }` to check that the SDK response omits a flag, even if the flag would be disabled when returned. This is useful for checking that a [server-side-only flag](https://docs.flagsmith.com/managing-flags/core-management) stays out of client responses. Use `{ "present": true }` to require a flag without asserting its state. See the [visibility contract](examples/visibility.contract.json) for anonymous and identified examples.
 
+### Catch newly exposed flags
+
+With v0.5.0 or newer, add `"onlyExpectedFlags": true` to a case to check the complete set of flags that audience receives. For example, if your mobile client should receive only `search_v2`, the case below fails as soon as any other flag appears in its SDK response, even a disabled one.
+
+```json
+{
+  "name": "Public client receives only the search flag",
+  "onlyExpectedFlags": true,
+  "expect": { "search_v2": { "present": true } }
+}
+```
+
+The report gives the name of each extra flag and the mismatch kind `unlisted_flag`, and omits its configuration value. To require an empty client response, use `"expect": {}` with this option. Cases that omit the option continue to check only the flags they name. The [client surface contract](examples/client-surface.contract.json) checks both anonymous visitors and a beta identity in the Docker demo.
+
+### Validate and run a contract
+
 For editor validation, copy [contract.schema.json](contract.schema.json) into your repo and set your contract's `"$schema"` to its relative path. Validate a contract before you have access to Flagsmith:
 
 ```sh
@@ -49,7 +65,7 @@ This also catches duplicate case names. It needs no SDK key or network connectio
 
 Use repeatable `--case` options to rerun selected cases by exact name. By default, the runner evaluates the whole contract in file order.
 
-With the current checkout, list the case names before connecting to Flagsmith. Add `--json` for a machine-readable list.
+List the case names before connecting to Flagsmith. Add `--json` for a machine-readable list.
 
 ```sh
 node flag-contract.mjs example.contract.json --list-cases
@@ -59,9 +75,9 @@ node flag-contract.mjs example.contract.json --case 'Free users get standard sea
 To use the CLI without cloning this repo, install the package from the GitHub release. It has no npm runtime dependencies.
 
 ```sh
-npm install --global https://github.com/Aditya030207/flag-contract/releases/download/v0.4.0/aditya030207-flag-contract-0.4.0.tgz
-curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.4.0/example.contract.json
-curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.4.0/contract.schema.json
+npm install --global https://github.com/Aditya030207/flag-contract/releases/download/v0.5.0/aditya030207-flag-contract-0.5.0.tgz
+curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.5.0/example.contract.json
+curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.5.0/contract.schema.json
 flag-contract example.contract.json --check
 ```
 
@@ -77,7 +93,7 @@ node flag-contract.mjs example.contract.json --json > flag-contract-report.json
 
 A completed report includes `status` (`pass` or `fail`), pass/fail counts, and each named case's mismatches. Missing and unexpectedly visible flags use `missing_flag` and `unexpected_flag`, respectively. Unexpected flag fields include the expected and actual values. An interrupted run returns `status: "error"` with the error message in a separate report shape. Reports omit identity identifiers, traits, and the SDK key. Use synthetic cases and treat reported configuration values as data when sharing CI artifacts.
 
-When sharing a report, use `--redact-values` with the CLI from the current checkout, or `redact-values: 'true'` with the Action from `main`. A configuration value mismatch retains its flag name and field, and replaces the expected and actual values with `"redacted": true`. Case names and enabled-state mismatches remain visible. The checks and exit codes are the same.
+When sharing a report, use `--redact-values` with the CLI, or `redact-values: 'true'` with the Action. A configuration value mismatch retains its flag name and field, and replaces the expected and actual values with `"redacted": true`. Case names and enabled-state mismatches remain visible. The checks and exit codes are the same.
 
 ## Run as a GitHub Action
 
@@ -86,7 +102,7 @@ Add a contract to your repository and place these steps in your workflow after c
 ```yaml
 - name: Check rollout
   id: flag-contract
-  uses: Aditya030207/flag-contract@v0.4.0
+  uses: Aditya030207/flag-contract@v0.5.0
   with:
     contract: flag-contract.json
     api-url: ${{ vars.FLAGSMITH_API_URL }}
@@ -101,7 +117,7 @@ Add a contract to your repository and place these steps in your workflow after c
 
 The check writes a case-by-case GitHub job summary and fails the job when a case fails or the API cannot be evaluated. The upload step uses `always()` so the report is available for investigating failures. Run the check after applying candidate targeting rules to a staging or disposable Flagsmith environment.
 
-To validate contracts in pull requests without an environment key, use the current Action from `main` with `check-only: 'true'` and omit `api-url` and `environment-key`. A valid contract produces the `valid` status and a JSON report with its case count. Run the live check separately against a reachable Flagsmith instance to verify flag behavior.
+To validate contracts in pull requests without an environment key, use the Action with `check-only: 'true'` and omit `api-url` and `environment-key`. A valid contract produces the `valid` status and a JSON report with its case count. Run the live check separately against a reachable Flagsmith instance to verify flag behavior.
 
 ## Hackathon demo
 
