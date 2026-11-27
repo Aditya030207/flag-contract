@@ -82,7 +82,12 @@ The check writes a case-by-case GitHub job summary and fails the job when a case
 
 ## Hackathon demo
 
-Watch the [hackathon demo](https://github.com/Aditya030207/flag-contract/releases/latest) or inspect the [live CI run and report](https://github.com/Aditya030207/flag-contract/actions/runs/45757268028). The run used self-hosted Flagsmith 2.291.0. The baseline passed all three cases. Widening the beta segment produced two mismatches for free users, while anonymous and beta cases still passed. Restoring the segment brought the suite back to three passes.
+Download the [demo video from the v0.4.0 release](https://github.com/Aditya030207/flag-contract/releases/tag/v0.4.0) or inspect the [passing integration run and its reports](https://github.com/Aditya030207/flag-contract/actions/runs/45878945428). The run used self-hosted Flagsmith 2.291.0 and exercised both scenarios:
+
+| Scenario | Baseline | Deliberate regression | After restoring the configuration |
+| --- | --- | --- | --- |
+| Beta search rollout | All 3 cases passed | Widening the beta segment changed both the flag state and its value for free users | All 3 cases passed |
+| Internal flag visibility | Both client cases passed | Making the internal flag client-visible caused both client cases to fail | Both client cases passed |
 
 To replay the same sequence locally, use Node.js 22+, Docker Compose v2, Bash, and curl:
 
