@@ -35,7 +35,10 @@ This also catches duplicate case names. It needs no SDK key or network connectio
 
 Use repeatable `--case` options to rerun selected cases by exact name. By default, the runner evaluates the whole contract in file order.
 
+With the current checkout, list the case names before connecting to Flagsmith. Add `--json` for a machine-readable list.
+
 ```sh
+node flag-contract.mjs example.contract.json --list-cases
 node flag-contract.mjs example.contract.json --case 'Free users get standard search'
 ```
 

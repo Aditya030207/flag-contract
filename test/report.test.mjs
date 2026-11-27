@@ -4,22 +4,41 @@ import { once } from 'node:events';
 import { createServer } from 'node:http';
 import test from 'node:test';
 
-test('offline validation needs no endpoint credentials', () => {
-  const run = (file) => spawnSync(process.execPath, ['flag-contract.mjs', file, '--check', '--json'], {
+function runOffline(file, ...options) {
+  return spawnSync(process.execPath, ['flag-contract.mjs', file, ...options], {
     cwd: new URL('..', import.meta.url),
     env: {},
     encoding: 'utf8',
   });
-  const valid = run('examples/visibility.contract.json');
+}
+
+test('offline validation needs no endpoint credentials', () => {
+  const valid = runOffline('examples/visibility.contract.json', '--check', '--json');
   assert.equal(valid.status, 0);
   assert.deepEqual(JSON.parse(valid.stdout), { status: 'valid', cases: 2 });
 
-  const invalid = run('contract.schema.json');
+  const invalid = runOffline('contract.schema.json', '--check', '--json');
   assert.equal(invalid.status, 2);
   assert.deepEqual(JSON.parse(invalid.stdout), {
     status: 'error',
     error: 'The contract must contain at least one case.',
   });
+});
+
+test('lists case names in contract order without contacting Flagsmith', () => {
+  const file = 'example.contract.json';
+  const names = [
+    'Anonymous visitors get standard search',
+    'Free users get standard search',
+    'Beta users get hybrid search',
+  ];
+  const listed = runOffline(file, '--list-cases');
+  assert.equal(listed.status, 0);
+  assert.deepEqual(listed.stdout.trimEnd().split('\n'), names);
+
+  const selected = runOffline(file, '--list-cases', '--json', '--case', names[2], '--case', names[0]);
+  assert.equal(selected.status, 0);
+  assert.deepEqual(JSON.parse(selected.stdout), { status: 'listed', cases: [names[0], names[2]] });
 });
 
 test('JSON reports distinguish rollout mismatches from API failures', async (t) => {

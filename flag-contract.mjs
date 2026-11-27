@@ -84,10 +84,14 @@ async function main(args, json) {
       check: { type: 'boolean' },
       json: { type: 'boolean' },
       case: { type: 'string', multiple: true },
+      'list-cases': { type: 'boolean' },
     },
   });
   if (positionals.length !== 1) {
-    throw new Error('Usage: flag-contract CONTRACT.json [--case NAME] [--check] [--json]');
+    throw new Error('Usage: flag-contract CONTRACT.json [--case NAME] [--check | --list-cases] [--json]');
+  }
+  if (values.check && values['list-cases']) {
+    throw new Error('Use either --check or --list-cases.');
   }
   const [filename] = positionals;
   const suite = JSON.parse(await readFile(filename, 'utf8'));
@@ -97,6 +101,11 @@ async function main(args, json) {
   if (requested.size && scenarios.length !== requested.size) {
     for (const { name } of scenarios) requested.delete(name);
     throw new Error(`Unknown case names: ${[...requested].map((name) => JSON.stringify(name)).join(', ')}.`);
+  }
+  if (values['list-cases']) {
+    const cases = scenarios.map(({ name }) => name);
+    console.log(json ? JSON.stringify({ status: 'listed', cases }) : cases.join('\n'));
+    return 0;
   }
   if (values.check) {
     const count = scenarios.length;
@@ -161,7 +170,8 @@ async function main(args, json) {
 }
 
 const args = process.argv.slice(2);
-const json = args.includes('--json');
+const endOfOptions = args.indexOf('--');
+const json = (endOfOptions === -1 ? args : args.slice(0, endOfOptions)).includes('--json');
 try {
   process.exitCode = await main(args, json);
 } catch (error) {
