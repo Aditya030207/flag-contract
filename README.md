@@ -61,6 +61,8 @@ node flag-contract.mjs example.contract.json --json > flag-contract-report.json
 
 A completed report includes `status` (`pass` or `fail`), pass/fail counts, and each named case's mismatches. Missing and unexpectedly visible flags use `missing_flag` and `unexpected_flag`, respectively. Unexpected flag fields include the expected and actual values. An interrupted run returns `status: "error"` with the error message in a separate report shape. Reports omit identity identifiers, traits, and the SDK key. Use synthetic cases and treat reported configuration values as data when sharing CI artifacts.
 
+When sharing a report, use `--redact-values` with the CLI from the current checkout, or `redact-values: 'true'` with the Action from `main`. A configuration value mismatch retains its flag name and field, and replaces the expected and actual values with `"redacted": true`. Case names and enabled-state mismatches remain visible. The checks and exit codes are the same.
+
 ## Run as a GitHub Action
 
 Add a contract to your repository and place these steps in your workflow after checkout. Set `FLAGSMITH_API_URL` as a repository variable and `FLAGSMITH_ENVIRONMENT_KEY` as a secret. Use a runner that can reach your Flagsmith instance.

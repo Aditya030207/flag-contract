@@ -85,10 +85,11 @@ async function main(args, json) {
       json: { type: 'boolean' },
       case: { type: 'string', multiple: true },
       'list-cases': { type: 'boolean' },
+      'redact-values': { type: 'boolean' },
     },
   });
   if (positionals.length !== 1) {
-    throw new Error('Usage: flag-contract CONTRACT.json [--case NAME] [--check | --list-cases] [--json]');
+    throw new Error('Usage: flag-contract CONTRACT.json [--case NAME] [--check | --list-cases] [--json] [--redact-values]');
   }
   if (values.check && values['list-cases']) {
     throw new Error('Use either --check or --list-cases.');
@@ -123,6 +124,7 @@ async function main(args, json) {
   if (!base.pathname.endsWith('/')) base.pathname += '/';
 
   const cases = [];
+  const redactValues = values['redact-values'];
   for (const scenario of scenarios) {
     const actual = await evaluate(base, key, scenario);
     const mismatches = [];
@@ -139,7 +141,10 @@ async function main(args, json) {
       for (const [field, expected] of Object.entries(checks)) {
         if (field === 'present') continue;
         if (!isDeepStrictEqual(state[field], expected)) {
-          mismatches.push({ flag, kind: 'unexpected_value', field, expected, actual: state[field] });
+          const detail = field === 'value' && redactValues
+            ? { redacted: true }
+            : { expected, actual: state[field] };
+          mismatches.push({ flag, kind: 'unexpected_value', field, ...detail });
         }
       }
     }
@@ -147,11 +152,13 @@ async function main(args, json) {
     cases.push({ name: scenario.name, status, mismatches });
     if (!json) {
       for (const mismatch of mismatches) {
-        const { flag, kind, field, expected, actual: received } = mismatch;
+        const { flag, kind, field, expected, actual: received, redacted } = mismatch;
         if (kind === 'missing_flag') {
           console.error(`  ${flag}: flag missing`);
         } else if (kind === 'unexpected_flag') {
           console.error(`  ${flag}: expected flag to be absent, but it was returned`);
+        } else if (redacted) {
+          console.error(`  ${flag}.${field}: unexpected value (redacted)`);
         } else {
           console.error(`  ${flag}.${field}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(received)}`);
         }

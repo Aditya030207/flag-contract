@@ -114,10 +114,19 @@ test('JSON reports distinguish rollout mismatches from API failures', async (t) 
   assert.deepEqual(JSON.parse(selected.stdout).cases, [report.cases[1]]);
   assert.equal(requests, requestsBeforeSelection + 1);
 
+  const redacted = await run('example.contract.json', '--case', 'Free users get standard search', '--redact-values');
+  assert.equal(redacted.code, 1);
+  assert.deepEqual(JSON.parse(redacted.stdout).cases[0].mismatches, [
+    report.cases[1].mismatches[0],
+    { flag: 'search_v2', kind: 'unexpected_value', field: 'value', redacted: true },
+  ]);
+  assert.doesNotMatch(redacted.stdout, /"standard"|"hybrid"/);
+
+  const requestsBeforeUnknown = requests;
   const unknown = await run('example.contract.json', '--case', 'Unknown');
   assert.equal(unknown.code, 2);
   assert.match(JSON.parse(unknown.stdout).error, /Unknown case names/);
-  assert.equal(requests, requestsBeforeSelection + 1);
+  assert.equal(requests, requestsBeforeUnknown);
 
   unavailable = true;
   const failure = await run();

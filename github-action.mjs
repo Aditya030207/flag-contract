@@ -7,7 +7,7 @@ function escapeHtml(text) {
   return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-function summarize(report) {
+function summarize(report, redactValues) {
   if (report.status === 'valid') {
     const unit = report.cases === 1 ? 'case' : 'cases';
     return `## Flag Contract: valid contract\n\nValidated ${report.cases} ${unit} offline.\n`;
@@ -29,12 +29,17 @@ function summarize(report) {
     }
   }
   const total = report.passed + report.failed;
-  return `## Flag Contract: ${report.passed}/${total} passed\n\n<pre>${escapeHtml(lines.join('\n'))}</pre>\n\nThe JSON report contains the expected and actual values.\n`;
+  const note = redactValues
+    ? 'The JSON report omits expected and actual configuration values.'
+    : 'The JSON report contains the expected and actual values.';
+  return `## Flag Contract: ${report.passed}/${total} passed\n\n<pre>${escapeHtml(lines.join('\n'))}</pre>\n\n${note}\n`;
 }
 
-function runCli(reportPath, contract, checkOnly) {
-  if (!['true', 'false'].includes(checkOnly)) {
-    const report = { status: 'error', error: 'The check-only input must be true or false.' };
+function runCli(reportPath, contract, checkOnly, redactValues) {
+  const options = [['check-only', checkOnly], ['redact-values', redactValues]];
+  const invalid = options.find(([, value]) => !['true', 'false'].includes(value));
+  if (invalid) {
+    const report = { status: 'error', error: `The ${invalid[0]} input must be true or false.` };
     writeFileSync(reportPath, JSON.stringify(report), { flag: 'wx', mode: 0o600 });
     console.error(`Flag Contract Action: ${report.error}`);
     return 2;
@@ -43,6 +48,7 @@ function runCli(reportPath, contract, checkOnly) {
   const cli = fileURLToPath(new URL('./flag-contract.mjs', import.meta.url));
   const args = [cli, '--json'];
   if (checkOnly === 'true') args.push('--check');
+  if (redactValues === 'true') args.push('--redact-values');
   if (contract) args.push('--', contract);
   let child;
   try {
@@ -58,17 +64,17 @@ function runCli(reportPath, contract, checkOnly) {
 }
 
 function run() {
-  const { FLAG_CONTRACT_FILE, FLAG_CONTRACT_CHECK_ONLY = 'false',
+  const { FLAG_CONTRACT_FILE, FLAG_CONTRACT_CHECK_ONLY = 'false', FLAG_CONTRACT_REDACT_VALUES = 'false',
     GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, RUNNER_TEMP } = process.env;
   if (!GITHUB_OUTPUT || !GITHUB_STEP_SUMMARY || !RUNNER_TEMP) {
     throw new Error('Flag Contract Action requires GitHub Actions runner paths.');
   }
 
   const reportPath = join(mkdtempSync(join(RUNNER_TEMP, 'flag-contract-')), 'report.json');
-  const exitCode = runCli(reportPath, FLAG_CONTRACT_FILE, FLAG_CONTRACT_CHECK_ONLY);
+  const exitCode = runCli(reportPath, FLAG_CONTRACT_FILE, FLAG_CONTRACT_CHECK_ONLY, FLAG_CONTRACT_REDACT_VALUES);
   const report = JSON.parse(readFileSync(reportPath, 'utf8'));
   appendFileSync(GITHUB_OUTPUT, `report-path=${reportPath}\nstatus=${report.status}\n`);
-  appendFileSync(GITHUB_STEP_SUMMARY, summarize(report));
+  appendFileSync(GITHUB_STEP_SUMMARY, summarize(report, FLAG_CONTRACT_REDACT_VALUES === 'true'));
   console.log(`Flag Contract result: ${report.status}`);
   return exitCode;
 }

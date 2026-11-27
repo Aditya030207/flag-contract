@@ -83,6 +83,28 @@ if [[ -n ${DEMO_JSON_REPORT:-} ]]; then
   cp -- "$report_path" "$DEMO_JSON_REPORT"
 fi
 
+redacted_status=0
+FLAG_CONTRACT_FILE=example.contract.json \
+  FLAG_CONTRACT_REDACT_VALUES=true \
+  GITHUB_OUTPUT="$demo_dir/redacted-output" \
+  GITHUB_STEP_SUMMARY="$summary" \
+  RUNNER_TEMP="$demo_dir" \
+  node github-action.mjs || redacted_status=$?
+test "$redacted_status" = 1
+redacted_path=$(sed -n 's/^report-path=//p' "$demo_dir/redacted-output")
+node --input-type=module -e '
+  import assert from "node:assert/strict";
+  import { readFileSync } from "node:fs";
+  const report = JSON.parse(readFileSync(0, "utf8"));
+  assert.equal(report.status, "fail");
+  assert.equal(report.failed, 1);
+  const failure = report.cases.find(({ status }) => status === "fail");
+  assert.deepEqual(failure.mismatches.find(({ field }) => field === "value"), {
+    flag: "search_v2", kind: "unexpected_value", field: "value", redacted: true,
+  });
+' < "$redacted_path"
+grep -Fq 'The JSON report omits expected and actual configuration values.' "$summary"
+
 printf '\nRestored · Beta segment matches plan=beta again\n'
 apply_stage restored
 node flag-contract.mjs example.contract.json

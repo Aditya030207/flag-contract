@@ -13,6 +13,9 @@ inputs:
   check-only:
     description: Set to true to validate the JSON contract offline
     default: 'false'
+  redact-values:
+    description: Set to true to omit expected and actual configuration values from reports
+    default: 'false'
 outputs:
   report-path:
     description: Absolute path to the JSON report on the runner
@@ -33,6 +36,7 @@ runs:
       env:
         FLAG_CONTRACT_FILE: ${{ inputs.contract }}
         FLAG_CONTRACT_CHECK_ONLY: ${{ inputs.check-only }}
+        FLAG_CONTRACT_REDACT_VALUES: ${{ inputs.redact-values }}
         FLAGSMITH_API_URL: ${{ inputs.api-url }}
         FLAGSMITH_ENVIRONMENT_KEY: ${{ inputs.environment-key }}
       run: node "$GITHUB_ACTION_PATH/github-action.mjs"
