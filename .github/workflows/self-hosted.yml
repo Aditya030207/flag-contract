@@ -41,9 +41,17 @@ jobs:
             assert.deepEqual(report, { status: "valid", cases: 3 });
           '
       - name: Verify baseline, regression, and recovery
-        run: DEMO_JSON_REPORT="$RUNNER_TEMP/flag-contract-demo.json" bash demo/run.sh
+        env:
+          DEMO_JSON_REPORT: ${{ runner.temp }}/flag-contract-demo.json
+          DEMO_VISIBILITY_JSON_REPORT: ${{ runner.temp }}/flag-contract-visibility.json
+        run: bash demo/run.sh
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: flag-contract-demo-report
           path: ${{ runner.temp }}/flag-contract-demo.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: flag-contract-visibility-report
+          path: ${{ runner.temp }}/flag-contract-visibility.json
           if-no-files-found: error

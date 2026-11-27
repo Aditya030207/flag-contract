@@ -105,6 +105,9 @@ node --input-type=module -e '
   }
   console.log("Unexpected visibility detected for anonymous and identified clients");
 ' <<< "$visibility"
+if [[ -n ${DEMO_VISIBILITY_JSON_REPORT:-} ]]; then
+  printf '%s\n' "$visibility" > "$DEMO_VISIBILITY_JSON_REPORT"
+fi
 
 printf '\nVisibility restored · Internal flag is server-side only again\n'
 apply_stage restored

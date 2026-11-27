@@ -91,6 +91,8 @@ Download the [demo video from the v0.4.0 release](https://github.com/Aditya03020
 | Beta search rollout | All 3 cases passed | Widening the beta segment changed both the flag state and its value for free users | All 3 cases passed |
 | Internal flag visibility | Both client cases passed | Making the internal flag client-visible caused both client cases to fail | Both client cases passed |
 
+Open the [self-hosted demo workflow runs](https://github.com/Aditya030207/flag-contract/actions/workflows/self-hosted.yml) to download the JSON evidence from a successful run. The `flag-contract-demo-report` artifact shows the targeting mismatches, and `flag-contract-visibility-report` shows the unexpected flag returned to both clients. The artifacts capture the deliberately failing checks. The workflow passes when it detects those failures and confirms recovery.
+
 To replay the same sequence locally, use Node.js 22+, Docker Compose v2, Bash, and curl:
 
 ```sh
