@@ -28,7 +28,7 @@ if (process.argv[2] === '--serve') {
       } else if (req.url === '/evidence.json') {
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(evidence);
       } else if (req.url === '/') {
-        res.writeHead(200, { 'Content-Type': 'text/html' }).end(await readFile(new URL('demo/catalog/index.html', root)));
+        res.writeHead(200, { 'Content-Type': 'text/html' }).end(await readFile(new URL('docs/index.html', root)));
       } else res.writeHead(404).end();
     } catch {
       res.writeHead(502).end('Flagsmith evaluation unavailable');

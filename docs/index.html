@@ -6,7 +6,7 @@
 <main><h1>Workspace catalog</h1><p>Which workspaces can see the Kotlin source?</p>
 <nav><label>Rollout<select id="phase"><option value="baseline">Original rollout</option><option value="regression">Widen production</option><option value="restored">Restore rollout</option></select></label>
 <label>Environment<select id="env"><option value="PRODUCTION">Production fixture</option><option value="STAGING">Staging fixture</option></select></label><button id="refresh" hidden>Refresh SDK responses</button></nav>
-<div class="grid" id="catalog"></div><aside id="check" aria-live="polite"></aside><p id="allchecks" aria-live="polite"></p><footer id="source"></footer></main>
+<div class="grid" id="catalog"></div><aside id="check" aria-live="polite"></aside><p id="allchecks" aria-live="polite"></p><footer><span id="source"></span> · <a href="https://github.com/Aditya030207/flag-contract/actions/runs/46116683091">CI evidence</a> · <a href="https://github.com/Aditya030207/flag-contract/pull/1">Preview PR</a></footer></main>
 <script type="module">
 const byId=id=>document.getElementById(id);
 const live=new URLSearchParams(location.search).has('live');
