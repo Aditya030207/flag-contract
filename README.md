@@ -4,7 +4,7 @@ Flag Contract checks what your users actually receive from Flagsmith. Store expe
 
 Run it from the command line or as a GitHub Action. The runner calls Flagsmith's SDK API for anonymous flags and for synthetic identities with transient traits. Flagsmith evaluates the rollout and segment rules. The runner compares the responses with your contract and reports mismatches.
 
-[Watch the submitted demo](https://youtu.be/01JmOaWkK4w) · [Inspect the self-hosted CI run](https://github.com/Aditya030207/flag-contract/actions/runs/46117370602)
+[Watch the submitted demo](https://youtu.be/01JmOaWkK4w) · [Inspect the v0.6.0 CI run](https://github.com/Aditya030207/flag-contract/actions/runs/46118170932) · [Open the interactive catalog](https://aditya030207.github.io/flag-contract/)
 
 ## Reproduce the demo
 
@@ -32,7 +32,7 @@ Open the [interactive catalog](https://aditya030207.github.io/flag-contract/). C
 
 For a live catalog on your own machine, use `bash demo/run.sh --catalog`. After the checks finish, open the printed localhost URL. **Refresh SDK responses** evaluates both workspaces against the running instance. Press Ctrl-C to stop and remove the demo containers and database.
 
-To rehearse a proposed Kotlin rollout, edit [demo/rollout.json](demo/rollout.json) in a PR. Each environment lists the plans receiving the feature. The existing PR workflow applies that file to two disposable Flagsmith environments and runs the matrix. Changing production to `["free", "beta"]` fails the check, names the standard workspace in the job summary and annotates the expected contract. See the [demonstration PR](https://github.com/Aditya030207/flag-contract/pull/1).
+To rehearse a proposed Kotlin rollout, edit [demo/rollout.json](demo/rollout.json) in a PR. Each environment lists the plans receiving the feature. The existing PR workflow applies that file to two disposable Flagsmith environments and runs the matrix. Changing production to `["free", "beta"]` fails the check, names the standard workspace in the job summary and annotates the expected contract. Compare the [run that caught the production regression](https://github.com/Aditya030207/flag-contract/actions/runs/46116574083) with the [passing run after the correction](https://github.com/Aditya030207/flag-contract/actions/runs/46117361541) in the [demonstration PR](https://github.com/Aditya030207/flag-contract/pull/1). The catalog’s [recorded SDK responses and contract results](https://aditya030207.github.io/flag-contract/evidence.json) are available as JSON.
 
 ## Check multiple environments
 
