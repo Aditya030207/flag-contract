@@ -1,4 +1,4 @@
 {
   "staging": ["free", "beta"],
-  "production": ["beta"]
+  "production": ["free", "beta"]
 }
