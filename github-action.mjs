@@ -36,6 +36,28 @@ function summarize(report, redactValues) {
   return `## Flag Contract: ${report.passed}/${total} passed\n\n<pre>${escapeHtml(lines.join('\n'))}</pre>\n\n${note}\n`;
 }
 
+function escapeCommand(text) {
+  return text.replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
+}
+
+function annotate(report, contract) {
+  if (report.status !== 'fail') return;
+  const file = escapeCommand(contract).replaceAll(':', '%3A').replaceAll(',', '%2C');
+  for (const [index, scenario] of report.cases.entries()) {
+    for (const mismatch of scenario.mismatches) {
+      const { flag, field, expected, actual, kind } = mismatch;
+      const detail = kind === 'unexpected_value'
+        ? field === 'enabled' ? `expected ${expected}, received ${actual}` : 'unexpected configuration value'
+        : kind.replaceAll('_', ' ');
+      const hint = ['unexpected_flag', 'unlisted_flag'].includes(kind)
+        ? 'Check client visibility for this flag.'
+        : 'Check environment defaults and matching segment overrides.';
+      const message = `cases[${index}] ${JSON.stringify(scenario.name)} — ${JSON.stringify(flag)}: ${detail}. ${hint}`;
+      console.log(`::error file=${file}::${escapeCommand(message)}`);
+    }
+  }
+}
+
 function runCli(reportPath, contract, checkOnly, redactValues) {
   const options = [['check-only', checkOnly], ['redact-values', redactValues]];
   const invalid = options.find(([, value]) => !['true', 'false'].includes(value));
@@ -74,6 +96,7 @@ function run() {
   const reportPath = join(mkdtempSync(join(RUNNER_TEMP, 'flag-contract-')), 'report.json');
   const exitCode = runCli(reportPath, FLAG_CONTRACT_FILE, FLAG_CONTRACT_CHECK_ONLY, FLAG_CONTRACT_REDACT_VALUES);
   const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+  annotate(report, FLAG_CONTRACT_FILE);
   appendFileSync(GITHUB_OUTPUT, `report-path=${reportPath}\nstatus=${report.status}\n`);
   appendFileSync(GITHUB_STEP_SUMMARY, summarize(report, FLAG_CONTRACT_REDACT_VALUES === 'true'));
   console.log(`Flag Contract result: ${report.status}`);

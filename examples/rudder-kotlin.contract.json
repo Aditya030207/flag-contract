@@ -1,0 +1,29 @@
+{
+  "$schema": "../contract.schema.json",
+  "cases": [
+    {
+      "name": "Standard workspace has Kotlin source disabled",
+      "identity": "demo-free",
+      "traits": {
+        "plan": "free"
+      },
+      "expect": {
+        "AMP_enable-kotlin-server-source": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "name": "Invited workspace has Kotlin source enabled",
+      "identity": "demo-beta",
+      "traits": {
+        "plan": "beta"
+      },
+      "expect": {
+        "AMP_enable-kotlin-server-source": {
+          "enabled": true
+        }
+      }
+    }
+  ]
+}

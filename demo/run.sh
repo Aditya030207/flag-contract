@@ -154,3 +154,21 @@ printf '\nVisibility restored · Internal flag is server-side only again\n'
 apply_stage restored
 node flag-contract.mjs examples/visibility.contract.json
 node flag-contract.mjs examples/client-surface.contract.json
+
+consumer=examples/rudder-kotlin.contract.json
+printf '\nConsumer fixture: RudderStack Kotlin source gate (synthetic workspaces)\n'
+apply_stage consumer-baseline
+node flag-contract.mjs "$consumer"
+printf '\nInjected change: widen the invited segment to standard workspaces\n'
+apply_stage consumer-regression
+consumer_status=0
+FLAG_CONTRACT_FILE="$consumer" GITHUB_OUTPUT="$demo_dir/consumer-output" \
+  GITHUB_STEP_SUMMARY="$summary" RUNNER_TEMP="$demo_dir" \
+  node github-action.mjs > "$demo_dir/consumer-log" || consumer_status=$?
+cat "$demo_dir/consumer-log"
+test "$consumer_status" = 1
+grep -Fq "::error file=$consumer::cases[0]" "$demo_dir/consumer-log"
+grep -Fq 'expected false, received true' "$demo_dir/consumer-log"
+printf '\nRestored: only invited workspaces receive the enabled gate\n'
+apply_stage consumer-restored
+node flag-contract.mjs "$consumer"

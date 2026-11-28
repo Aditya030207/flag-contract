@@ -12,10 +12,10 @@ from segments.models import Condition, Segment, SegmentRule
 
 
 @transaction.atomic
-def configure_demo(stage):
+def configure_demo(stage, consumer=False):
     organisation, _ = Organisation.objects.get_or_create(name="Flag Contract Demo")
     project, _ = Project.objects.get_or_create(
-        organisation=organisation, name="Search rollout"
+        organisation=organisation, name="Kotlin source gate" if consumer else "Search rollout"
     )
     environment, _ = Environment.objects.get_or_create(
         project=project,
@@ -24,7 +24,7 @@ def configure_demo(stage):
     )
     feature, _ = Feature.objects.get_or_create(
         project=project,
-        name="search_v2",
+        name="AMP_enable-kotlin-server-source" if consumer else "search_v2",
         defaults={"default_enabled": False, "initial_value": "standard"},
     )
     internal, _ = Feature.objects.get_or_create(
@@ -61,7 +61,8 @@ def configure_demo(stage):
     print(f"DEMO_ENVIRONMENT_KEY={environment.api_key}")
 
 
-stage = os.environ["DEMO_STAGE"]
+consumer = os.environ["DEMO_STAGE"].startswith("consumer-")
+stage = os.environ["DEMO_STAGE"].removeprefix("consumer-")
 if stage not in {"baseline", "regression", "restored", "exposed"}:
     raise ValueError(f"Unknown demo stage: {stage}")
-configure_demo(stage)
+configure_demo(stage, consumer)

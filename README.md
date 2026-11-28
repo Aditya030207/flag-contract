@@ -18,6 +18,12 @@ The script starts a disposable Flagsmith 2.291.0 instance and database, creates 
 
 Expect two deliberate failures followed by recovery. The demo catches a beta rule that includes free users and an internal flag that appears in client responses. See the [verified run and both JSON reports](https://github.com/Aditya030207/flag-contract/actions/runs/46002460299) for the recorded results.
 
+## Independent consumer example: RudderStack’s Kotlin source
+
+RudderStack’s [Kotlin source definition](https://github.com/rudderlabs/rudder-integrations-config/blob/c0efb7ea755acb82c82980c02c70182864c042d5/src/configurations/sources/kotlin/db-config.json) hides the integration when `AMP_enable-kotlin-server-source` is false. Our [contract](examples/rudder-kotlin.contract.json) models a rollout to invited workspaces. The flag name and hide-when rule come from upstream. The workspace traits, rollout policy, and deliberate targeting mistake are our test fixture.
+
+Run `bash demo/run.sh` to reproduce it in a separate disposable Flagsmith project. Widening the segment enables the Kotlin gate for a standard workspace. The Action identifies the failing contract file, case, and observed boolean. Restoring the segment makes both cases pass. This checks the SDK response that drives the gate; the RudderStack web app and production environment are outside the demo.
+
 ## Use your own Flagsmith instance
 
 1. Run [self-hosted Flagsmith](https://docs.flagsmith.com/deployment-self-hosting/hosting-guides/docker) and create a project.
