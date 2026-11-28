@@ -4,6 +4,9 @@ inputs:
   contract:
     description: Path to the JSON contract relative to the checked-out repository
     required: true
+  matrix:
+    description: Treat contract as an environment manifest and read named SDK keys from the job environment
+    default: 'false'
   api-url:
     description: Flagsmith SDK API base URL for live checks, ending in /api/v1/
     required: false
@@ -34,6 +37,7 @@ runs:
       name: Run rollout contract
       shell: bash
       env:
+        FLAG_CONTRACT_MATRIX: ${{ inputs.matrix }}
         FLAG_CONTRACT_FILE: ${{ inputs.contract }}
         FLAG_CONTRACT_CHECK_ONLY: ${{ inputs.check-only }}
         FLAG_CONTRACT_REDACT_VALUES: ${{ inputs.redact-values }}

@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, closeSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 function escapeHtml(text) {
@@ -8,6 +8,10 @@ function escapeHtml(text) {
 }
 
 function summarize(report, redactValues) {
+  if (report.environments) {
+    return report.environments.map(({ name, report: result }) =>
+      '### ' + name + '\n\n' + summarize(result, redactValues)).join('\n');
+  }
   if (report.status === 'valid') {
     const unit = report.cases === 1 ? 'case' : 'cases';
     return `## Flag Contract: valid contract\n\nValidated ${report.cases} ${unit} offline.\n`;
@@ -40,7 +44,11 @@ function escapeCommand(text) {
   return text.replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
 }
 
-function annotate(report, contract) {
+function annotate(report, contract, prefix = '') {
+  if (report.environments) {
+    for (const target of report.environments) annotate(target.report, join(dirname(contract), target.contract), target.name + ' ');
+    return;
+  }
   if (report.status !== 'fail') return;
   const file = escapeCommand(contract).replaceAll(':', '%3A').replaceAll(',', '%2C');
   for (const [index, scenario] of report.cases.entries()) {
@@ -52,14 +60,15 @@ function annotate(report, contract) {
       const hint = ['unexpected_flag', 'unlisted_flag'].includes(kind)
         ? 'Check client visibility for this flag.'
         : 'Check environment defaults and matching segment overrides.';
-      const message = `cases[${index}] ${JSON.stringify(scenario.name)} — ${JSON.stringify(flag)}: ${detail}. ${hint}`;
+      const message = `${prefix}cases[${index}] ${JSON.stringify(scenario.name)} — ${JSON.stringify(flag)}: ${detail}. ${hint}`;
       console.log(`::error file=${file}::${escapeCommand(message)}`);
     }
   }
 }
 
 function runCli(reportPath, contract, checkOnly, redactValues) {
-  const options = [['check-only', checkOnly], ['redact-values', redactValues]];
+  const matrix = process.env.FLAG_CONTRACT_MATRIX ?? 'false';
+  const options = [['matrix', matrix], ['check-only', checkOnly], ['redact-values', redactValues]];
   const invalid = options.find(([, value]) => !['true', 'false'].includes(value));
   if (invalid) {
     const report = { status: 'error', error: `The ${invalid[0]} input must be true or false.` };
@@ -70,6 +79,7 @@ function runCli(reportPath, contract, checkOnly, redactValues) {
   const descriptor = openSync(reportPath, 'wx', 0o600);
   const cli = fileURLToPath(new URL('./flag-contract.mjs', import.meta.url));
   const args = [cli, '--json'];
+  if (matrix === 'true') args.push('--matrix');
   if (checkOnly === 'true') args.push('--check');
   if (redactValues === 'true') args.push('--redact-values');
   if (contract) args.push('--', contract);

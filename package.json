@@ -1,14 +1,27 @@
 {
   "name": "@aditya030207/flag-contract",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Contract tests for audience-level feature flag behavior in Flagsmith",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Aditya030207/flag-contract.git"
   },
-  "engines": { "node": ">=22" },
-  "bin": { "flag-contract": "flag-contract.mjs" },
-  "files": ["flag-contract.mjs", "contract.schema.json", "example.contract.json", "examples"],
-  "scripts": { "test": "node --test" }
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "flag-contract": "flag-contract.mjs"
+  },
+  "files": [
+    "flag-contract.mjs",
+    "environment-matrix.mjs",
+    "flagsmith-sdk.mjs",
+    "contract.schema.json",
+    "example.contract.json",
+    "examples"
+  ],
+  "scripts": {
+    "test": "node --test"
+  }
 }

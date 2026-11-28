@@ -1,0 +1,6 @@
+{
+  "environments": [
+    { "name": "STAGING", "contract": "kotlin-staging.contract.json" },
+    { "name": "PRODUCTION", "contract": "rudder-kotlin.contract.json" }
+  ]
+}

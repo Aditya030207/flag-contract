@@ -172,3 +172,34 @@ grep -Fq 'expected false, received true' "$demo_dir/consumer-log"
 printf '\nRestored: only invited workspaces receive the enabled gate\n'
 apply_stage consumer-restored
 node flag-contract.mjs "$consumer"
+
+# Configure two isolated Flagsmith environments using the same tracked candidate file a PR edits.
+preview_plan() {
+  local output
+  output=$("${compose[@]}" exec -T -e "ROLLOUT_PLAN=$1" flagsmith \
+    flagsmith shell -c 'import sys; exec(sys.stdin.read())' < demo/preview_seed.py)
+  FLAGSMITH_STAGING_KEY=$(sed -n 's/^STAGING_KEY=//p' <<< "$output" | tail -1)
+  FLAGSMITH_PRODUCTION_KEY=$(sed -n 's/^PRODUCTION_KEY=//p' <<< "$output" | tail -1)
+  test -n "$FLAGSMITH_STAGING_KEY" && test -n "$FLAGSMITH_PRODUCTION_KEY"
+  test "$FLAGSMITH_STAGING_KEY" != "$FLAGSMITH_PRODUCTION_KEY"
+  export FLAGSMITH_STAGING_KEY FLAGSMITH_PRODUCTION_KEY
+}
+
+for phase in baseline regression restored; do
+  plan='{"staging":["free","beta"],"production":["beta"]}'
+  if [[ $phase == regression ]]; then plan='{"staging":["free","beta"],"production":["free","beta"]}'; fi
+  preview_plan "$plan"
+  node demo/catalog.mjs > "$demo_dir/$phase.catalog"
+  code=0
+  node flag-contract.mjs --matrix examples/environments.json --json > "$demo_dir/$phase.matrix" || code=$?
+  if [[ $phase == regression ]]; then test "$code" = 1; else test "$code" = 0; fi
+done
+node demo/verify-catalog.mjs "$demo_dir" > "$demo_dir/evidence.json"
+echo "CATALOG_EVIDENCE=$(cat "$demo_dir/evidence.json")"
+
+preview_plan "$(cat demo/rollout.json)"
+echo 'Checking proposed demo/rollout.json against staging and production contracts'
+FLAG_CONTRACT_MATRIX=true FLAG_CONTRACT_FILE=examples/environments.json \
+  GITHUB_OUTPUT="$demo_dir/preview-output" GITHUB_STEP_SUMMARY="$summary" RUNNER_TEMP="$demo_dir" \
+  node github-action.mjs
+if [[ ${1:-} == --catalog ]]; then node demo/catalog.mjs --serve "$demo_dir/evidence.json"; fi

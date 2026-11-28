@@ -1,0 +1,4 @@
+{
+  "staging": ["free", "beta"],
+  "production": ["beta"]
+}

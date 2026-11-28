@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workspace catalog · Flag Contract</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f7f6ef;color:#192c28;font:16px/1.5 "DM Sans",system-ui,sans-serif}header,main{max-width:1080px;margin:auto;padding:24px 32px}header{border-bottom:1px solid #c4d2c9;display:flex;justify-content:space-between;align-items:center}header strong{font-size:21px}header a{color:#205d49}h1{font-size:clamp(32px,5vw,52px);letter-spacing:-.055em;margin:8px 0}p{margin:5px 0 16px}nav{display:flex;align-items:end;flex-wrap:wrap;gap:16px;margin:20px 0}label{display:grid;gap:4px;font-weight:650;font-size:14px}select,button{background:white;color:inherit;border:1px solid #81968c;border-radius:6px;padding:8px 12px;font:inherit}button{cursor:pointer}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.workspace{background:#fff;border:1px solid #c3d0c7;border-radius:12px;padding:22px}h2{font-size:21px;margin:0 0 14px}ul{list-style:none;padding:0;margin:0}li{border-top:1px solid #e2e8e3;padding:11px 0;display:flex;align-items:center;gap:12px}li b{display:grid;place-items:center;background:#e4efe8;width:34px;height:34px;border-radius:8px;color:#245a49}li.kotlin b{background:#ebe6fc;color:#5e4186}aside{margin-top:18px;padding:16px 22px;background:#e0efe4;border-left:5px solid #38855f;border-radius:5px}aside.fail{background:#ffeadf;border-color:#b64b27}aside h2{margin:0}aside p{margin:5px 0 0}footer{font-size:13px;color:#475b50;margin-top:15px}@media(max-width:660px){.grid{grid-template-columns:1fr}main,header{padding:16px}}
+</style>
+<header><strong>Flag Contract</strong><a href="https://github.com/Aditya030207/flag-contract">Source on GitHub ↗</a></header>
+<main><h1>Workspace catalog</h1><p>Which workspaces can see the Kotlin source?</p>
+<nav><label>Rollout<select id="phase"><option value="baseline">Original rollout</option><option value="regression">Widen production</option><option value="restored">Restore rollout</option></select></label>
+<label>Environment<select id="env"><option value="PRODUCTION">Production fixture</option><option value="STAGING">Staging fixture</option></select></label><button id="refresh" hidden>Refresh SDK responses</button></nav>
+<div class="grid" id="catalog"></div><aside id="check" aria-live="polite"></aside><footer id="source"></footer></main>
+<script type="module">
+const byId=id=>document.getElementById(id);
+const live=new URLSearchParams(location.search).has('live');
+async function load(url){const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw Error();return response.json()}
+const evidence=await load('evidence.json').catch(()=>null);
+let sequence=0;
+async function draw(){
+ const request=++sequence, phase=byId('phase').value, env=byId('env').value;
+ const check=byId('check'), catalog=byId('catalog');
+ try {
+  const record=evidence[phase], all=live?await load('live.json'):record.workspaces;
+  if(request!==sequence)return;
+  const spaces=all[env];
+  catalog.replaceChildren();
+  for(const workspace of spaces){
+   const card=document.createElement('section');card.className='workspace';
+   card.innerHTML='<h2></h2><ul><li><b>H</b>HTTP source</li></ul>';
+   card.querySelector('h2').textContent=workspace.plan==='beta'?'Invited workspace':'Standard workspace';
+   if(workspace.kotlin)card.querySelector('ul').insertAdjacentHTML('beforeend','<li class="kotlin"><b>K</b>Kotlin source</li>');
+   catalog.append(card);
+  }
+  check.className='';
+  if(live){check.textContent='Showing current Flagsmith SDK responses.';return}
+  const report=record.matrix.environments.find(x=>x.name===env).report;
+  check.innerHTML='<h2></h2><p></p>';
+  check.querySelector('h2').textContent='Contract '+report.status.toUpperCase()+' · '+report.passed+'/'+report.cases.length+' cases passed';
+  const failures=report.cases.filter(c=>c.status==='fail');
+  check.className=failures.length?'fail':'';
+  check.querySelector('p').textContent=failures.map(c=>c.name+' — '+c.mismatches.map(m=>m.flag+': expected '+m.expected+', received '+m.actual).join(', ')).join(' / ') || 'Both workspaces received their expected flags.';
+ }catch{if(request===sequence){catalog.replaceChildren();check.textContent='Unable to load these evaluations.'}}
+}
+if(live){byId('phase').parentElement.hidden=true;byId('refresh').hidden=false}
+byId('source').textContent=live?'Live SDK evaluations · disposable self-hosted Flagsmith':'Replay of self-hosted Flagsmith evaluations · synthetic workspaces · intentionally widened rollout';
+byId('phase').onchange=byId('env').onchange=byId('refresh').onclick=draw;draw();
+</script></html>
