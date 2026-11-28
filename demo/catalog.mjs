@@ -22,12 +22,13 @@ if (process.argv[2] === '--serve') {
   const evidence = await readFile(process.argv[3]);
   const server = createServer(async (req, res) => {
     try {
-      if (req.url === '/live.json') {
+      const pathname = new URL(req.url, 'http://localhost').pathname;
+      if (pathname === '/live.json') {
         const body = JSON.stringify(await snapshot());
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(body);
-      } else if (req.url === '/evidence.json') {
+      } else if (pathname === '/evidence.json') {
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(evidence);
-      } else if (req.url === '/') {
+      } else if (pathname === '/') {
         res.writeHead(200, { 'Content-Type': 'text/html' }).end(await readFile(new URL('docs/index.html', root)));
       } else res.writeHead(404).end();
     } catch {
