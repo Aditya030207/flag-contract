@@ -7,7 +7,8 @@ export async function runMatrix(filename, options) {
   const { environments } = JSON.parse(await readFile(filename, 'utf8'));
   if (!Array.isArray(environments) || !environments.length) throw new Error('Specify at least one environment.');
   const names = new Set();
-  for (const { name, contract } of environments) {
+  for (const entry of environments) {
+    const { name, contract } = entry ?? {};
     if (typeof name !== 'string' || !/^[A-Z][A-Z0-9_]*$/.test(name) || names.has(name) ||
         typeof contract !== 'string' || !contract.trim()) {
       throw new Error('Each environment needs a unique uppercase name and a contract path.');

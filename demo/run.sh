@@ -180,7 +180,8 @@ preview_plan() {
     flagsmith shell -c 'import sys; exec(sys.stdin.read())' < demo/preview_seed.py)
   FLAGSMITH_STAGING_KEY=$(sed -n 's/^STAGING_KEY=//p' <<< "$output" | tail -1)
   FLAGSMITH_PRODUCTION_KEY=$(sed -n 's/^PRODUCTION_KEY=//p' <<< "$output" | tail -1)
-  test -n "$FLAGSMITH_STAGING_KEY" && test -n "$FLAGSMITH_PRODUCTION_KEY"
+  test -n "$FLAGSMITH_STAGING_KEY"
+  test -n "$FLAGSMITH_PRODUCTION_KEY"
   test "$FLAGSMITH_STAGING_KEY" != "$FLAGSMITH_PRODUCTION_KEY"
   export FLAGSMITH_STAGING_KEY FLAGSMITH_PRODUCTION_KEY
 }

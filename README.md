@@ -18,13 +18,32 @@ bash demo/run.sh
 
 The script starts a disposable Flagsmith 2.291.0 instance and database, creates test flags, and evaluates synthetic identities. It removes the demo containers and data at the end. The first run pulls Docker images. No Flagsmith account or existing environment key is needed.
 
-Expect two deliberate failures followed by recovery. The demo catches a beta rule that includes free users and an internal flag that appears in client responses. See the [verified run and both JSON reports](https://github.com/Aditya030207/flag-contract/actions/runs/46002460299) for the recorded results.
+The demo introduces deliberate failures and checks recovery. The demo catches a beta rule that includes free users and an internal flag that appears in client responses. See the [verified run and both JSON reports](https://github.com/Aditya030207/flag-contract/actions/runs/46002460299) for the recorded results.
 
 ## Independent consumer example: RudderStack’s Kotlin source
 
 RudderStack’s [Kotlin source definition](https://github.com/rudderlabs/rudder-integrations-config/blob/c0efb7ea755acb82c82980c02c70182864c042d5/src/configurations/sources/kotlin/db-config.json) hides the integration when `AMP_enable-kotlin-server-source` is false. Our [contract](examples/rudder-kotlin.contract.json) models a rollout to invited workspaces. The flag name and hide-when rule come from upstream. The workspace traits, rollout policy, and deliberate targeting mistake are our test fixture.
 
 Run `bash demo/run.sh` to reproduce it in a separate disposable Flagsmith project. Widening the segment enables the Kotlin gate for a standard workspace. The Action identifies the failing contract file, case, and observed boolean. Restoring the segment makes both cases pass. This checks the SDK response that drives the gate; the RudderStack web app and production environment are outside the demo.
+
+## Workspace catalog and pull-request preview
+
+Open the [interactive catalog](https://aditya030207.github.io/flag-contract/). Choose **Widen production** and watch the Kotlin source appear in the standard workspace. Staging permits that audience and passes. Production requires an invitation and fails. **Restore rollout** brings both contracts back to green. The hosted catalog replays SDK evaluations and contract reports from the disposable CI run. The HTTP source is an always-visible example card.
+
+For a live catalog on your own machine, use `bash demo/run.sh --catalog`. After the checks finish, open the printed localhost URL. **Refresh SDK responses** evaluates both workspaces against the running instance. Press Ctrl-C to stop and remove the demo containers and database.
+
+To rehearse a proposed Kotlin rollout, edit [demo/rollout.json](demo/rollout.json) in a PR. Each environment lists the plans receiving the feature. The existing PR workflow applies that file to two disposable Flagsmith environments and runs the matrix. Changing production to `["free", "beta"]` fails the check, names the standard workspace in the job summary and annotates the expected contract. See the [demonstration PR](https://github.com/Aditya030207/flag-contract/pull/1).
+
+## Check multiple environments
+
+An [environment manifest](examples/environments.json) maps uppercase environment names to contract files relative to the manifest. Each contract describes what that environment should return. Set `FLAGSMITH_STAGING_KEY` and `FLAGSMITH_PRODUCTION_KEY` to client SDK keys. Use `FLAGSMITH_API_URL` for a shared server or `FLAGSMITH_STAGING_URL` and `FLAGSMITH_PRODUCTION_URL` for separate servers.
+
+```sh
+flag-contract --matrix examples/environments.json --check
+flag-contract --matrix examples/environments.json --json
+```
+
+The combined report preserves each environment's cases, mismatches and errors. The exit code is 2 if any environment cannot be evaluated, 1 for an assertion failure, and 0 when all pass. Use `--redact-values` when sharing remote configuration reports. For the GitHub Action, set `matrix: 'true'`, pass the manifest as `contract`, provide the named keys in the step's `env`, and use the `api-url` input for a shared server.
 
 ## Use your own Flagsmith instance
 
@@ -83,9 +102,9 @@ node flag-contract.mjs example.contract.json --case 'Free users get standard sea
 To use the CLI without cloning this repo, install the package from the GitHub release. It has no npm runtime dependencies.
 
 ```sh
-npm install --global https://github.com/Aditya030207/flag-contract/releases/download/v0.5.0/aditya030207-flag-contract-0.5.0.tgz
-curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.5.0/example.contract.json
-curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.5.0/contract.schema.json
+npm install --global https://github.com/Aditya030207/flag-contract/releases/download/v0.6.0/aditya030207-flag-contract-0.6.0.tgz
+curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.6.0/example.contract.json
+curl -fsSLO https://raw.githubusercontent.com/Aditya030207/flag-contract/v0.6.0/contract.schema.json
 flag-contract example.contract.json --check
 ```
 
@@ -110,7 +129,7 @@ Add a contract to your repository and place these steps in your workflow after c
 ```yaml
 - name: Check rollout
   id: flag-contract
-  uses: Aditya030207/flag-contract@669d43717edd6085dab0bb6b2b1eed7ae4283353 # Includes case annotations
+  uses: Aditya030207/flag-contract@v0.6.0
   with:
     contract: flag-contract.json
     api-url: ${{ vars.FLAGSMITH_API_URL }}
