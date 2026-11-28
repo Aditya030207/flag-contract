@@ -4,6 +4,8 @@ Flag Contract checks what your users actually receive from Flagsmith. Store expe
 
 Run it from the command line or as a GitHub Action. The runner calls Flagsmith's SDK API for anonymous flags and for synthetic identities with transient traits. Flagsmith evaluates the rollout and segment rules. The runner compares the responses with your contract and reports mismatches.
 
+[Watch the submitted demo](https://youtu.be/0Ry0CKSuD7w) · [Inspect the self-hosted CI run](https://github.com/Aditya030207/flag-contract/actions/runs/46113027609)
+
 ## Reproduce the demo
 
 With Node.js 22+, Bash, curl, and Docker running with Compose v2:
@@ -108,7 +110,7 @@ Add a contract to your repository and place these steps in your workflow after c
 ```yaml
 - name: Check rollout
   id: flag-contract
-  uses: Aditya030207/flag-contract@v0.5.0
+  uses: Aditya030207/flag-contract@669d43717edd6085dab0bb6b2b1eed7ae4283353 # Includes case annotations
   with:
     contract: flag-contract.json
     api-url: ${{ vars.FLAGSMITH_API_URL }}
@@ -127,11 +129,12 @@ To validate contracts in pull requests without an environment key, use the Actio
 
 ## Hackathon demo
 
-Download the [demo video from the v0.4.0 release](https://github.com/Aditya030207/flag-contract/releases/tag/v0.4.0). The self-hosted workflow exercised both scenarios:
+The [submitted video](https://youtu.be/0Ry0CKSuD7w) includes output from the self-hosted workflow.
 
 | Scenario | Baseline | Deliberate regression | After restoring the configuration |
 | --- | --- | --- | --- |
 | Beta search rollout | All 3 cases passed | Widening the beta segment changed both the flag state and its value for free users | All 3 cases passed |
+| RudderStack Kotlin source gate | Both synthetic workspaces passed | The standard workspace unexpectedly received the enabled flag | Both cases passed |
 | Internal flag visibility | Both client cases passed | Making the internal flag client-visible caused both client cases to fail | Both client cases passed |
 
 Open the [self-hosted demo workflow runs](https://github.com/Aditya030207/flag-contract/actions/workflows/self-hosted.yml) to download the JSON evidence from a successful run. The `flag-contract-demo-report` artifact shows the targeting mismatches, and `flag-contract-visibility-report` shows the unexpected flag returned to both clients. The artifacts capture the deliberately failing checks. The workflow passes when it detects those failures and confirms recovery.
