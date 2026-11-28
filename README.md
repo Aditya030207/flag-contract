@@ -4,7 +4,7 @@ Flag Contract checks what your users actually receive from Flagsmith. Store expe
 
 Run it from the command line or as a GitHub Action. The runner calls Flagsmith's SDK API for anonymous flags and for synthetic identities with transient traits. Flagsmith evaluates the rollout and segment rules. The runner compares the responses with your contract and reports mismatches.
 
-[Watch the submitted demo](https://youtu.be/0Ry0CKSuD7w) · [Inspect the self-hosted CI run](https://github.com/Aditya030207/flag-contract/actions/runs/46113027609)
+[Watch the submitted demo](https://youtu.be/01JmOaWkK4w) · [Inspect the self-hosted CI run](https://github.com/Aditya030207/flag-contract/actions/runs/46117370602)
 
 ## Reproduce the demo
 
@@ -148,7 +148,7 @@ To validate contracts in pull requests without an environment key, use the Actio
 
 ## Hackathon demo
 
-The [submitted video](https://youtu.be/0Ry0CKSuD7w) includes output from the self-hosted workflow.
+The [submitted video](https://youtu.be/01JmOaWkK4w) includes output from the self-hosted workflow.
 
 | Scenario | Baseline | Deliberate regression | After restoring the configuration |
 | --- | --- | --- | --- |
